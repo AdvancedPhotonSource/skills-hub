@@ -1,5 +1,15 @@
+import type { Classification } from '../src/lib/server/catalog';
+
+export type CatalogSkill = Classification & { name: string; directory?: string };
+
 // Reviewed source selection; commits make the starter library reproducible.
-export const starterCatalog = [
+export const starterCatalog: {
+	repository: string;
+	commit: string;
+	ref: string;
+	license: string;
+	skills: CatalogSkill[];
+}[] = [
 	{
 		repository: 'K-Dense-AI/scientific-agent-skills',
 		commit: '593377bb048752abb0152deab9fbb1083a6087df',
@@ -143,5 +153,77 @@ export const starterCatalog = [
 					'Turn our documented beamline data-inspection workflow into an Agent Skill with supporting scripts. Create representative evaluation prompts and check that the skill activates on appropriate tasks.'
 			}
 		]
+	},
+	{
+		repository: 'AdvancedPhotonSource/ptychodus',
+		commit: '7c661a1cbecb5148315a1d5cfaa42fd592da3704',
+		ref: 'main',
+		license: 'Argonne BSD-style terms in repository LICENSE; retained in each package',
+		skills: [
+			{
+				name: 'add-plugin',
+				directory: '.claude/skills/add-plugin',
+				categories: ['imaging', 'python'],
+				tags: ['ptychodus', 'ptychography', 'hdf5'],
+				role: 'Software engineer',
+				example:
+					'In my Ptychodus checkout, add a reader for our beamline HDF5 diffraction format. Follow the existing plugin interface, preserve scan indexes, and verify registration and a small file round trip.'
+			},
+			{
+				name: 'add-reconstructor',
+				directory: '.claude/skills/add-reconstructor',
+				categories: ['imaging', 'python'],
+				tags: ['ptychodus', 'ptychography', 'reconstruction'],
+				role: 'Software engineer',
+				example:
+					'In my Ptychodus checkout, integrate a reconstruction library as an optional backend. Match the current Reconstructor interface, stream iteration results, and keep startup working without the optional dependency.'
+			},
+			{
+				name: 'check-layers',
+				directory: '.claude/skills/check-layers',
+				categories: ['testing', 'python'],
+				tags: ['ptychodus', 'python', 'architecture'],
+				role: 'Software engineer',
+				example:
+					'Audit my Ptychodus changes for imports that violate the api/model/view/controller boundaries, including ptychodus_store. Report offending file locations and suggested ownership without changing the code.'
+			}
+		]
+	},
+	{
+		repository: 'AdvancedPhotonSource/EAA',
+		commit: '738960330cb66b3cf195d7e261def2e89ef5f9a8',
+		ref: 'main',
+		license: 'No license declaration or applicable license file supplied at this revision',
+		skills: [
+			{
+				name: 'create-eaa-compatible-mcp-servers',
+				directory: 'developer_tools/create_eaa_compatible_mcp_servers',
+				categories: ['mcp', 'devices', 'bluesky'],
+				tags: ['eaa', 'mcp', 'bluesky', 'epics'],
+				role: 'Controls engineer',
+				example:
+					'Review an MCP gateway for our existing Bluesky Queue Server against EAA’s documented payload contracts. Check tool schemas, image paths, get_attribute_payload, and the separation between gateway and instrument execution.'
+			}
+		]
+	}
+];
+
+// Original hub-authored packages, with reviewed upstream references inside each folder.
+export const localSkills: CatalogSkill[] = [
+	{
+		name: 'aps-eaa-workflow-setup',
+		categories: ['agent-workflows', 'mcp', 'skill-authoring'],
+		tags: ['eaa', 'python', 'mcp', 'argo'],
+		role: 'Software engineer',
+		example:
+			'Set up a terminal EAA agent using our configured model endpoint, a dedicated workspace, and downloaded hub skills. Show how to attach our existing MCP server and diagnose missing skills or tool images.'
+	},
+	{
+		name: 'aps-lauelab-indexing',
+		categories: ['scattering', 'materials'],
+		tags: ['lauelab', 'laue', '34-id-e', 'hdf5'],
+		role: 'Researcher',
+		example:
+			'Prepare a reproducible lauelab indexing workflow for these APS 34-ID-E frames and their matching detector geometry and crystal XML files. Summarize peaks, orientations, unique indexed peaks, and any input failures.'
 	}
 ];

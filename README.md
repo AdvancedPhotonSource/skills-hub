@@ -8,7 +8,7 @@ Requires Node.js 24 or newer.
 
 ```sh
 npm ci
-npm run import:catalog   # optional: 16 source-linked skills from pinned GitHub commits
+npm run import:catalog   # optional: curated upstream and hub-authored APS skills
 npm run dev
 ```
 
@@ -27,9 +27,18 @@ MCP, richer collections/exports, and Entra OIDC are subsequent milestones. Contr
 
 ## Starter catalog and imports
 
-`scripts/catalog.ts` records the curated repository paths, exact commits, license review, taxonomy, and example tasks. The selection includes 12 K-Dense scientific skills (exploration, visualization, statistics, materials, large arrays/tables) and four Anthropic development skills (frontend design, web testing, MCP, skill creation). SkillsMP is a discovery source; packages come directly from GitHub and are served from local storage afterward.
+`scripts/catalog.ts` records the curated repository paths, exact commits, license review, taxonomy, and example tasks. The 22-skill selection includes 12 K-Dense scientific skills, four Anthropic development skills, and six APS-specific entries. SkillsMP and the APS GitHub organization are discovery sources; imported packages come directly from GitHub and are served from local storage afterward.
 
-`npm run import:catalog` is repeatable and skips matching commits. Add `-- --archive-examples` to hide the original six demos after all imports succeed; their revisions are retained. Starter entries belong to the credential-free **APS curated library** account and can be maintained by a hub administrator. `npm run seed` remains available for a separate demo database.
+| APS skill                                         | Source and scope                                                                                                                                                                       |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add-plugin`, `add-reconstructor`, `check-layers` | Imported unchanged from Ptychodus's `.claude/skills/`; use within a Ptychodus checkout, with its `CLAUDE.md` and companion development skills.                                         |
+| `create-eaa-compatible-mcp-servers`               | Imported unchanged from EAA's `developer_tools/`; instrument-gateway design and payload contracts. Upstream supplies no applicable license declaration at the reviewed revision.       |
+| `aps-eaa-workflow-setup`                          | Hub-authored in `skills/`; Python EAA setup, skills, MCP, persistence, and a terminal-agent example. Records the upstream EAA-Pi migration notice.                                     |
+| `aps-lauelab-indexing`                            | Hub-authored in `skills/`; 34-ID-E Laue indexing, calibration inputs, coordinate conventions, results, and a batch example. Execution requires upstream's supported Linux environment. |
+
+The authored packages link to pinned upstream documentation and identify local authorship explicitly. Their example scripts have been syntax/CLI checked; representative agent tasks and beamline execution are deferred.
+
+`npm run import:catalog` is repeatable: it skips matching imported commits and unchanged local packages/metadata, and publishes changed local packages as new revisions. Explicit `directory` entries support skills outside `skills/<name>`. Add `-- --archive-examples` to hide the original six demos after publication succeeds; their revisions are retained. Starter entries belong to the credential-free **APS curated library** account and can be maintained by a hub administrator. Edit original packages under `skills/` and rerun the command to republish them; their upstream-reference commits are in each package. `npm run seed` remains available for a separate demo database.
 
 To import your own selection, sign in, open **Upload → Import from GitHub**, find the repository's skills, select a directory, preview, classify, and publish. **Manage skill → Refresh from GitHub** checks the tracked branch/tag and creates an immutable revision if the commit changed; a commit-pinned ref stays pinned. Metadata edits retain source attribution. Modified upstream files should be published as a separate upload. Upstream publisher and local maintainer are displayed separately.
 
