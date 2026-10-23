@@ -73,6 +73,7 @@ Packages accept at most 10 MB compressed, 25 MB expanded, 200 files, and 5 MB pe
 ```sh
 npm run check
 npm test
+python3 -m unittest discover -s tests -p '*_test.py'
 npm run build
 npx playwright install chromium
 npm run test:e2e
@@ -85,16 +86,62 @@ Use Conventional Commit titles for commits, PRs, and squash merges, such as `fea
 
 ## Deploy on arecibo
 
-Confirm the host's runtime, existing JMD proxy routes, certificate hostname coverage, and approved Argonne network/VPN ranges before deployment. TLS alone does not restrict access.
+The deployment configuration in `deploy/` targets **https://arecibo.xray.aps.anl.gov:9005** on RHEL 9.8. It runs as `haskels` using persistent systemd user services (linger enabled), with no root privileges:
 
-```sh
-npm ci
-npm run build
-HOST=127.0.0.1 PORT=3000 BODY_SIZE_LIMIT=12M \
-  ORIGIN=https://actual-certificate-covered-hostname \
-  DATA_DIR=/persistent/local/path/skills-hub node build
+- Node.js **24.22.1** serves the application on `127.0.0.1:19005`.
+- Caddy **2.11.7** terminates HTTPS on port 9005 using the existing JMD InCommon certificate and key under `~/.jmd/tls/`. The certificate covers `arecibo.xray.aps.anl.gov`; the reviewed certificate expires January 9, 2027.
+- `deploy/Caddyfile` restricts every route to loopback, `10.0.0.0/8`, and `164.54.0.0/16`, matching the approved CAI network policy. It checks the socket peer address, not a client-supplied forwarded header. Caddy overwrites `X-Forwarded-For`; only its loopback backend can reach Node, which trusts one proxy hop for authentication throttling.
+- Runtime binaries, releases, the database, and immutable packages live on local XFS under `/local/haskels/skills-hub`. The user's home is NFS and holds service definitions, the existing certificate, and backups. SQLite's live database must remain on local storage.
+
+Layout:
+
+```text
+/local/haskels/skills-hub/
+  runtime/node/       # official Node distribution (symlink to versioned directory)
+  runtime/caddy       # official Caddy binary
+  source/             # Git checkout used to create release worktrees
+  releases/<commit>/  # isolated source, dependencies, and build for each deployment
+  current -> releases/<commit>
+  data/               # hub.sqlite, packages/, and import cache
+~/.skills-hub/backups/ # private compressed snapshots on NFS
 ```
 
-Run as an unprivileged service behind the existing HTTPS proxy. Apply Argonne-only access rules to **all** application, API, file, and download routes. Keep the app's listener private. `ORIGIN` must match the browser-facing origin. Set `BASE_PATH` during the build if mounting below a path (for example `/skills-hub`); append that path to user-facing links, not `ORIGIN`. `.env.example` lists configuration; direct Node startup uses exported environment variables (or Node's `--env-file`).
+Verify official runtime archive checksums before installation: Node publishes SHA-256 sums; Caddy publishes SHA-512 sums. The local filesystem had approximately 16 GB free during setup; monitor usage and retain only needed release builds and import caches.
 
-Keep SQLite on local disk. For a simple consistent backup, stop the service, copy the entire data directory (database, WAL files if present, and packages), then restart. Restore into a separate directory and verify an account and historical download before relying on the backup. arecibo deployment and network restrictions have not yet been exercised.
+### Publish and activate a release
+
+Push changes and wait for the GitHub **Checks** workflow. Create an annotated version tag after checks pass. On arecibo, resolve that tag to a commit, create a fresh release worktree, then build and import its catalog using the local Node runtime:
+
+```sh
+export PATH=/local/haskels/skills-hub/runtime/node/bin:$PATH
+export DATA_DIR=/local/haskels/skills-hub/data
+# Run in the new releases/<commit> worktree:
+npm ci
+npm run check
+npm test
+python3 -m unittest discover -s tests -p '*_test.py'
+npm run build
+npm run import:catalog
+```
+
+For the first deployment, create `current` pointing at that worktree. Install `deploy/skills-hub*.service` and `deploy/skills-hub-backup.timer` in `~/.config/systemd/user/`, run `systemctl --user daemon-reload`, then enable/start `skills-hub.service`, `skills-hub-tls.service`, and `skills-hub-backup.timer`. Validate the Caddy configuration with `runtime/caddy validate --config current/deploy/Caddyfile --adapter caddyfile` before starting HTTPS.
+
+For updates, take a backup first, build the new release separately, replace the `current` symlink atomically, and restart `skills-hub`. Reload systemd definitions if they changed; restart `skills-hub-tls` when changing its configuration or renewing the shared certificate. The application `ORIGIN` must match the externally visible HTTPS origin. `deploy/skills-hub.service` specifies the production environment explicitly.
+
+Verify HTTPS certificate trust, the catalog, API docs, a revision-pinned download, and anonymous access after activation. New deployments have a credential-free curated owner and no personal accounts; create your own account through the site and run `DATA_DIR=/local/haskels/skills-hub/data npm run admin -- promote <username>` from the release when assigning an administrator.
+
+```sh
+systemctl --user status skills-hub skills-hub-tls skills-hub-backup.timer
+journalctl --user -u skills-hub -u skills-hub-tls --since today
+systemctl --user start skills-hub-backup.service
+```
+
+### Backups and rollback
+
+The backup timer runs daily at 03:30 host time (plus up to 15 minutes of jitter) and catches up after downtime. `deploy/backup.py` takes an online SQLite snapshot on local disk, checks it, and archives exactly the immutable package files referenced by that snapshot. It records the deployed Git commit, preserves executable modes, publishes the archive atomically on NFS, and retains 14 successful snapshots. An incomplete backup does not replace the preceding one. Archives contain account data and are private to the deployment user.
+
+To verify or restore, extract a trusted archive into a **new, empty** local directory; check SQLite integrity and the package manifest hashes there. Stop `skills-hub` before switching its live `data/` directory to a restored copy. Preserve the old directory until the restored application has been verified. A snapshot includes the database and packages, not TLS keys or rebuildable GitHub caches.
+
+For a code-only rollback, switch `current` to the preceding release and restart the application. If an update changes the database schema incompatibly, restore the matching pre-update snapshot as well; changing code alone does not undo a schema migration.
+
+For another host or a subpath deployment, adapt these host-specific service/proxy files. Set `BASE_PATH` at build time and append it to user-facing links, not `ORIGIN`; `.env.example` lists the general application settings.

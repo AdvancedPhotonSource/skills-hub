@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up APS Skills Hub database and packages
+
+[Service]
+Type=oneshot
+WorkingDirectory=/local/haskels/skills-hub/current
+ExecStart=/usr/bin/python3 deploy/backup.py --data-dir /local/haskels/skills-hub/data --destination %h/.skills-hub/backups --release /local/haskels/skills-hub/current
+UMask=0077
+NoNewPrivileges=true

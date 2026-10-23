@@ -1,0 +1,16 @@
+[Unit]
+Description=APS Skills Hub HTTPS and network access
+After=network.target skills-hub.service
+Wants=skills-hub.service
+
+[Service]
+Type=simple
+WorkingDirectory=/local/haskels/skills-hub/current
+ExecStart=/local/haskels/skills-hub/runtime/caddy run --config deploy/Caddyfile --adapter caddyfile
+UMask=0077
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
