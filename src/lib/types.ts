@@ -1,0 +1,31 @@
+export type User = { id: string; username: string; displayName: string; isAdmin: boolean };
+export type Category = { id: string; name: string; parent: string | null; count?: number };
+export type Skill = {
+	id: string;
+	name: string;
+	description: string;
+	ownerId: string;
+	username: string;
+	displayName: string;
+	categories: string[];
+	tags: string[];
+	role: string;
+	license: string;
+	compatibility: string;
+	updatedAt: string;
+	revision: number;
+	downloads: number;
+	archived: boolean;
+};
+export type Revision = {
+	id: string;
+	number: number;
+	createdAt: string;
+	checksum: string;
+	version: string;
+	name: string;
+	description: string;
+	license: string;
+	compatibility: string;
+	files: { path: string; size: number; sha256: string }[];
+};

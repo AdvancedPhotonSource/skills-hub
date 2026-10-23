@@ -1,0 +1,161 @@
+import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { zipSync, unzipSync } from 'fflate';
+
+const directory = mkdtempSync(join(tmpdir(), 'aps-hub-test-'));
+process.env.DATA_DIR = directory;
+const { db } = await import('../src/lib/server/db');
+const { register, authenticate, createSession, sessionUser, resetPassword, allowAttempt } =
+	await import('../src/lib/server/auth');
+const { parseUpload, validatePackage } = await import('../src/lib/server/packages');
+const {
+	publish,
+	getSkill,
+	requireOwner,
+	revisionFor,
+	readPackageFile,
+	download,
+	searchSkills,
+	setArchived,
+	taxonomyCounts
+} = await import('../src/lib/server/catalog');
+const { renderMarkdown } = await import('../src/lib/server/markdown');
+
+let alice: Awaited<ReturnType<typeof register>>;
+let bob: typeof alice;
+let skillId: string;
+const original = Buffer.from(
+	'---\nname: test-science\ndescription: Inspect scientific datasets with Python\n---\n\n# Dataset exploration\n\nUse HDF5 metadata first.\n'
+);
+const metadata = { categories: ['reduction'], tags: ['python', 'hdf5'], role: 'Researcher' };
+const pkg = () =>
+	validatePackage([
+		{ path: 'SKILL.md', data: original, mode: 0o644 },
+		{ path: 'assets/sample.bin', data: Buffer.from([0, 1, 255]), mode: 0o644 }
+	]);
+
+beforeAll(async () => {
+	alice = await register('alice', 'long-passphrase-for-alice', 'Alice');
+	bob = await register('bob', 'long-passphrase-for-bob', 'Bob');
+	skillId = publish(alice, pkg(), metadata);
+});
+afterAll(() => {
+	db.close();
+	rmSync(directory, { recursive: true, force: true });
+});
+
+describe('accounts and ownership', () => {
+	it('authenticates with normalized usernames, rejects incorrect passwords, and stores password hashes', async () => {
+		expect((await authenticate('ALICE', 'long-passphrase-for-alice'))?.id).toBe(alice.id);
+		expect(await authenticate('alice', 'wrong-password')).toBeNull();
+		expect(await authenticate('unknown', 'wrong-password')).toBeNull();
+		const row = db.prepare("SELECT password_hash FROM identities WHERE subject='alice'").get() as {
+			password_hash: string;
+		};
+		expect(row.password_hash).toMatch(/^\$argon2id\$/);
+		await expect(register('ALICE', 'some-other-long-password', '')).rejects.toThrow(
+			'already taken'
+		);
+	});
+	it('revokes all existing sessions when resetting a password', async () => {
+		const first = createSession(bob.id);
+		const second = createSession(bob.id);
+		expect(sessionUser(first)?.id).toBe(bob.id);
+		expect(db.prepare('SELECT 1 FROM sessions WHERE token_hash=?').get(first)).toBeUndefined();
+		await resetPassword(bob.id, 'a-new-long-passphrase');
+		expect(sessionUser(first)).toBeNull();
+		expect(sessionUser(second)).toBeNull();
+		expect((await authenticate('bob', 'a-new-long-passphrase'))?.id).toBe(bob.id);
+	});
+	it('blocks anonymous and other-account edits before modifying files or metadata', () => {
+		expect(() => requireOwner(skillId, null)).toThrow('Sign in');
+		expect(() => publish(bob, pkg(), metadata, { id: skillId, expected: 1 })).toThrow(
+			'Only the owner'
+		);
+		expect(() => setArchived(skillId, bob, true, 1)).toThrow('Only the owner');
+		expect(getSkill(skillId).revision).toBe(1);
+		expect(getSkill(skillId).ownerId).toBe(alice.id);
+	});
+	it('limits repeated authentication attempts', () => {
+		expect(allowAttempt('rate-test', 2)).toBe(true);
+		expect(allowAttempt('rate-test', 2)).toBe(true);
+		expect(allowAttempt('rate-test', 2)).toBe(false);
+	});
+});
+
+describe('catalog integrity', () => {
+	it('searches content, prefixes, phrases, and descendant taxonomy without exposing SQL syntax', () => {
+		for (const q of ['HDF5', 'sci', '"scientific datasets"', 'test-science'])
+			expect(searchSkills(new URLSearchParams({ q })).total).toBe(1);
+		expect(searchSkills(new URLSearchParams({ q: 'OR NOT * "' })).total).toBe(0);
+		expect(searchSkills(new URLSearchParams({ category: 'science', tag: 'python' })).total).toBe(1);
+		expect(searchSkills(new URLSearchParams({ q: 'test-science', exact: '1' })).total).toBe(1);
+		expect(searchSkills(new URLSearchParams({ q: 'test', exact: '1' })).total).toBe(0);
+		expect(taxonomyCounts().find((c) => c.id === 'science')?.count).toBe(1);
+	});
+	it('retains exact package bytes and immutable older revisions, rejecting stale updates', () => {
+		const previous = revisionFor(skillId, 1);
+		expect(readPackageFile(previous, 'SKILL.md')).toEqual(original);
+		const next = pkg();
+		next.files[0].data = Buffer.from('a changed file');
+		publish(alice, next, metadata, { id: skillId, expected: 1 });
+		expect(getSkill(skillId).revision).toBe(2);
+		expect(readPackageFile(previous, 'SKILL.md')).toEqual(original);
+		expect(() => publish(alice, pkg(), metadata, { id: skillId, expected: 1 })).toThrow(
+			'changed since'
+		);
+		expect(() => readPackageFile(previous, '../../hub.sqlite')).toThrow('File not found');
+		const zip = unzipSync(download(getSkill(skillId), previous));
+		expect(Buffer.from(zip['test-science/SKILL.md'])).toEqual(original);
+		expect([...zip['test-science/assets/sample.bin']]).toEqual([0, 1, 255]);
+	});
+	it('hides archived skills while retaining owner access and restoring the search index', () => {
+		setArchived(skillId, alice, true, 2);
+		expect(() => getSkill(skillId)).toThrow('not found');
+		expect(() => getSkill(skillId, bob)).toThrow('not found');
+		expect(getSkill(skillId, alice).archived).toBe(true);
+		expect(searchSkills(new URLSearchParams()).total).toBe(0);
+		setArchived(skillId, alice, false, 2);
+		expect(searchSkills(new URLSearchParams()).total).toBe(1);
+	});
+});
+
+describe('packages and previews', () => {
+	const upload = (entries: Record<string, Uint8Array>) =>
+		parseUpload(new File([zipSync(entries)], 'skill.zip'));
+	it('accepts a complete nested skill and keeps binary companions', async () => {
+		const result = await upload({
+			'test-science/SKILL.md': original,
+			'test-science/assets/sample.bin': new Uint8Array([0, 255])
+		});
+		expect(result.name).toBe('test-science');
+		expect(result.files.find((f) => f.path === 'assets/sample.bin')?.data).toEqual(
+			Buffer.from([0, 255])
+		);
+	});
+	it('rejects traversal, oversized expansion, multiple roots, and mismatched folder names', async () => {
+		await expect(upload({ '../SKILL.md': original })).rejects.toThrow();
+		await expect(
+			upload({
+				'test-science/SKILL.md': original,
+				'test-science/huge.txt': new Uint8Array(6 * 1024 * 1024)
+			})
+		).rejects.toThrow('5 MB');
+		await expect(upload({ 'one/SKILL.md': original, 'two/SKILL.md': original })).rejects.toThrow(
+			'one skill'
+		);
+		await expect(upload({ 'wrong-name/SKILL.md': original })).rejects.toThrow('folder name');
+	});
+	it('rejects invalid frontmatter and renders source instructions inertly', () => {
+		expect(() =>
+			validatePackage([{ path: 'SKILL.md', data: Buffer.from('# Missing metadata'), mode: 0o644 }])
+		).toThrow('frontmatter');
+		const html = renderMarkdown(
+			'# Hello\n<script>alert(1)</script><img src=x onerror=alert(1)>[click](javascript:alert(1))<iframe src="https://example.com"></iframe>'
+		);
+		expect(html).toContain('<h1>Hello</h1>');
+		expect(html).not.toMatch(/<script|onerror|href="javascript:|<iframe|<img/);
+	});
+});
