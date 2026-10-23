@@ -33,8 +33,8 @@
 				{#if searching}Search the library.{:else}Find the skill for<br />your next task.{/if}
 			</h1>
 			{#if !searching}<p>
-					Reusable instructions for your AI agents.<br class="desktop-break" /> Built by colleagues. Ready
-					for science, code, and everyday work.
+					Reusable instructions for your AI agents.<br class="desktop-break" /> Community skills and local
+					expertise for science, code, and everyday work.
 				</p>{/if}
 			<form class="search-box" action={`${base}/`} method="GET" role="search">
 				{#each Object.entries(data.filters).filter(([key]) => !['q', 'page'].includes(key)) as [key, value]}<input
@@ -51,7 +51,7 @@
 				/><button type="submit" aria-label="Search"><ArrowRight size={20} /></button>
 			</form>
 			<div class="suggestions">
-				<span>Try</span>{#each ['Python', 'EPICS', 'HDF5'] as keyword}<a
+				<span>Try</span>{#each ['Python', 'visualization', 'HDF5'] as keyword}<a
 						href={`${base}/?q=${keyword}`}>{keyword}</a
 					>{/each}
 			</div>
@@ -91,7 +91,7 @@
 				</div>{/if}
 		{/each}
 		<form method="GET" action={`${base}/`} class="secondary-filters">
-			{#each Object.entries(data.filters).filter(([key]) => !['role', 'days', 'exact', 'page'].includes(key)) as [key, value]}<input
+			{#each Object.entries(data.filters).filter(([key]) => !['role', 'days', 'origin', 'exact', 'page'].includes(key)) as [key, value]}<input
 					type="hidden"
 					name={key}
 					{value}
@@ -110,6 +110,15 @@
 					><option value="">Any time</option><option value="7">Past week</option><option value="30"
 						>Past month</option
 					><option value="90">Past 90 days</option><option value="365">Past year</option></select
+				>
+			</div>
+			<div class="field">
+				<label for="origin">Source</label><select
+					id="origin"
+					name="origin"
+					value={data.filters.origin || ''}
+					><option value="">All sources</option><option value="imported">GitHub imports</option
+					><option value="uploaded">Local uploads</option></select
 				>
 			</div>
 			<label class="check-label"
@@ -132,9 +141,11 @@
 						? `Results for “${data.query}”`
 						: data.filters.category
 							? categoryName(data.filters.category)
-							: data.filters.author
-								? `Skills by ${data.filters.author}`
-								: 'Explore the library'}
+							: data.filters.repository
+								? data.filters.repository
+								: data.filters.author
+									? `Skills by ${data.filters.author}`
+									: 'Explore the library'}
 				</h2>
 				<p>
 					{data.total}

@@ -158,4 +158,49 @@ describe('packages and previews', () => {
 		expect(html).toContain('<h1>Hello</h1>');
 		expect(html).not.toMatch(/<script|onerror|href="javascript:|<iframe|<img/);
 	});
+	it('resolves companion links within the selected immutable revision', () => {
+		const html = renderMarkdown('[Reference](../references/guide.md) [Bad](javascript:alert(1))', {
+			path: 'scripts/README.md',
+			revision: 3,
+			files: [{ path: 'references/guide.md' }]
+		});
+		expect(html).toContain('?revision=3&amp;file=references%2Fguide.md');
+		expect(html).not.toContain('javascript:');
+	});
+});
+
+describe('imported revisions', () => {
+	it('keeps provenance separate from ownership, preserves old imports, and serves downloads offline', () => {
+		const imported = pkg();
+		imported.source = {
+			repository: 'upstream/science',
+			directory: 'skills/test-science',
+			ref: 'main',
+			commit: 'a'.repeat(40),
+			commitDate: '2026-10-01T00:00:00Z',
+			author: 'upstream',
+			licenses: []
+		};
+		const id = publish(bob, imported, { ...metadata, example: 'Inspect my HDF5 file.' });
+		const first = revisionFor(id);
+		expect(getSkill(id)).toMatchObject({
+			ownerId: bob.id,
+			example: 'Inspect my HDF5 file.',
+			source: { author: 'upstream' }
+		});
+		expect(
+			searchSkills(new URLSearchParams({ author: 'upstream' })).skills.map((skill) => skill.id)
+		).toEqual([id]);
+		expect(searchSkills(new URLSearchParams({ repository: 'UPSTREAM/SCIENCE' })).total).toBe(1);
+		expect(searchSkills(new URLSearchParams({ origin: 'imported' })).total).toBe(1);
+		expect(() => publish(alice, imported, metadata, { id, expected: 1 })).toThrow('Only the owner');
+		imported.source = { ...imported.source, commit: 'b'.repeat(40) };
+		publish(bob, imported, metadata, { id, expected: 1 });
+		expect(revisionFor(id).source?.commit).toBe('b'.repeat(40));
+		expect(revisionFor(id, 1).source?.commit).toBe('a'.repeat(40));
+		expect(() => publish(bob, imported, metadata, { id, expected: 1 })).toThrow('changed since');
+		expect(Buffer.from(unzipSync(download(getSkill(id), first))['test-science/SKILL.md'])).toEqual(
+			original
+		);
+	});
 });

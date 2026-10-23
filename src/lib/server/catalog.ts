@@ -8,19 +8,22 @@ import { HubError } from './errors';
 import { sha256, type SkillPackage } from './packages';
 import type { Skill, Revision, User } from '../types';
 
-type SkillRow = Omit<Skill, 'categories' | 'tags' | 'archived'> & {
+type SkillRow = Omit<Skill, 'categories' | 'tags' | 'archived' | 'source'> & {
 	categories: string;
 	tags: string;
 	archived: number;
+	source: string | null;
 };
 const select = `SELECT s.id, s.owner_id AS ownerId, s.name, s.description, s.categories, s.tags, s.role,
   s.license, s.compatibility, s.updated_at AS updatedAt, s.revision, s.downloads, s.archived,
-  u.username, u.display_name AS displayName FROM skills s JOIN users u ON u.id = s.owner_id`;
+  s.example, r.source, u.username, u.display_name AS displayName FROM skills s JOIN users u ON u.id = s.owner_id
+  JOIN revisions r ON r.skill_id = s.id AND r.number = s.revision`;
 const toSkill = (row: SkillRow): Skill => ({
 	...row,
 	categories: JSON.parse(row.categories),
 	tags: JSON.parse(row.tags),
-	archived: Boolean(row.archived)
+	archived: Boolean(row.archived),
+	source: row.source ? JSON.parse(row.source) : null
 });
 
 export function getSkill(id: string, owner?: User | null) {
@@ -44,6 +47,8 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 	const role = params.get('role') || '';
 	const tag = params.get('tag') || '';
 	const author = params.get('author') || '';
+	const repository = params.get('repository') || '';
+	const origin = params.get('origin') || '';
 	const sort = params.get('sort') || 'relevance';
 	const exact = params.get('exact') === '1';
 	const page = Math.max(1, Math.min(100000, Number(params.get('page')) || 1)) | 0;
@@ -80,9 +85,15 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 		values.push(tag);
 	}
 	if (author) {
-		where.push('u.username = ?');
-		values.push(author);
+		where.push("(u.username = ? OR json_extract(r.source, '$.author') = ? COLLATE NOCASE)");
+		values.push(author, author);
 	}
+	if (repository) {
+		where.push("json_extract(r.source, '$.repository') = ? COLLATE NOCASE");
+		values.push(repository);
+	}
+	if (origin === 'imported') where.push('r.source IS NOT NULL');
+	if (origin === 'uploaded') where.push('r.source IS NULL');
 	const days = Number(params.get('days'));
 	if ([7, 30, 90, 365].includes(days)) {
 		where.push('s.updated_at >= ?');
@@ -92,7 +103,7 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 	const total = (
 		db
 			.prepare(
-				`SELECT count(*) AS n FROM skills s JOIN users u ON u.id = s.owner_id WHERE ${clause}`
+				`SELECT count(*) AS n FROM skills s JOIN users u ON u.id = s.owner_id JOIN revisions r ON r.skill_id = s.id AND r.number = s.revision WHERE ${clause}`
 			)
 			.get(...values) as { n: number }
 	).n;
@@ -131,10 +142,14 @@ export function revisions(id: string): Revision[] {
 	return (
 		db
 			.prepare(
-				`SELECT id, number, created_at AS createdAt, checksum, version, name, description, license, compatibility, files FROM revisions WHERE skill_id = ? ORDER BY number DESC`
+				`SELECT id, number, created_at AS createdAt, checksum, version, name, description, license, compatibility, files, source FROM revisions WHERE skill_id = ? ORDER BY number DESC`
 			)
-			.all(id) as (Omit<Revision, 'files'> & { files: string })[]
-	).map((r) => ({ ...r, files: JSON.parse(r.files) }));
+			.all(id) as (Omit<Revision, 'files' | 'source'> & { files: string; source: string | null })[]
+	).map((r) => ({
+		...r,
+		files: JSON.parse(r.files),
+		source: r.source ? JSON.parse(r.source) : null
+	}));
 }
 
 export function revisionFor(id: string, number?: number) {
@@ -148,7 +163,12 @@ export function readPackageFile(revision: Revision, path: string) {
 	return readFileSync(join(dataDir, 'packages', revision.id, path));
 }
 
-export type Classification = { categories: string[]; tags: string[]; role: string };
+export type Classification = {
+	categories: string[];
+	tags: string[];
+	role: string;
+	example?: string;
+};
 export function classification(form: FormData): Classification {
 	const selected = [...new Set(form.getAll('category').map(String))];
 	if (
@@ -169,7 +189,9 @@ export function classification(form: FormData): Classification {
 		throw new HubError('Use up to 10 short, comma-separated technology tags.');
 	const role = String(form.get('role') || '');
 	if (role && !roles.includes(role)) throw new HubError('Choose an available role.');
-	return { categories: selected, tags, role };
+	const example = String(form.get('example') || '').trim();
+	if (example.length > 1000) throw new HubError('Keep the example prompt under 1,000 characters.');
+	return { categories: selected, tags, role, example };
 }
 
 export function publish(
@@ -203,7 +225,7 @@ export function publish(
 			if (existing) {
 				const result = db
 					.prepare(
-						`UPDATE skills SET description=?, categories=?, tags=?, role=?, license=?, compatibility=?, revision=?, updated_at=? WHERE id=? AND revision=?`
+						`UPDATE skills SET description=?, categories=?, tags=?, role=?, license=?, compatibility=?, revision=?, updated_at=?, example=? WHERE id=? AND revision=?`
 					)
 					.run(
 						pkg.description,
@@ -214,6 +236,7 @@ export function publish(
 						pkg.compatibility,
 						number,
 						now,
+						meta.example || '',
 						id,
 						update!.expected
 					);
@@ -229,7 +252,7 @@ export function publish(
 						409
 					);
 				db.prepare(
-					`INSERT INTO skills (id, owner_id, name, description, categories, tags, role, license, compatibility, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+					`INSERT INTO skills (id, owner_id, name, description, categories, tags, role, license, compatibility, updated_at, example) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 				).run(
 					id,
 					user.id,
@@ -240,11 +263,12 @@ export function publish(
 					meta.role,
 					pkg.license,
 					pkg.compatibility,
-					now
+					now,
+					meta.example || ''
 				);
 			}
 			db.prepare(
-				'INSERT INTO revisions (id, skill_id, number, created_at, checksum, version, name, description, license, compatibility, files) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+				'INSERT INTO revisions (id, skill_id, number, created_at, checksum, version, name, description, license, compatibility, files, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
 			).run(
 				revisionId,
 				id,
@@ -256,7 +280,8 @@ export function publish(
 				pkg.description,
 				pkg.license,
 				pkg.compatibility,
-				JSON.stringify(files)
+				JSON.stringify(files),
+				pkg.source ? JSON.stringify(pkg.source) : null
 			);
 			db.prepare('DELETE FROM skill_search WHERE skill_id=?').run(id);
 			db.prepare(

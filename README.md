@@ -8,7 +8,7 @@ Requires Node.js 24 or newer.
 
 ```sh
 npm ci
-npm run seed   # optional: six original example skills, with no demo login
+npm run import:catalog   # optional: 16 source-linked skills from pinned GitHub commits
 npm run dev
 ```
 
@@ -19,10 +19,25 @@ Open http://127.0.0.1:5173. Create an account to publish; browsing and downloads
 - Responsive catalog, hierarchical categories, role/technology filters, full-text search, and shareable search URLs.
 - Local accounts, My skills, password changes, and server-enforced ownership.
 - SKILL.md/ZIP uploads, package previews, immutable revisions, historical downloads, and archival.
+- Public GitHub imports with directory selection, complete companion files, source/license links, pinned commits, and owner-requested refresh.
 - Sanitized Markdown, file browsing, installation instructions, and browser-local saved skills.
-- Read API: `GET /api/v1/skills`, `/api/v1/skills/:id`, and `/api/v1/categories`. Search accepts `q`, `category`, `role`, `tag`, `author`, `days`, `exact=1`, `sort=relevance|recent|downloads`, and `page` (20 results per page).
+- Read API: `GET /api/v1/skills`, `/api/v1/skills/:id`, and `/api/v1/categories`. Search accepts `q`, `category`, `role`, `tag`, `author` (hub maintainer or upstream publisher), `repository` (`owner/repo`), `origin=imported|uploaded`, `days`, `exact=1`, `sort=relevance|recent|downloads`, and `page` (20 results per page). Detail/revision records include import provenance.
 
-Git imports, MCP, richer collections/exports, and Entra OIDC are subsequent milestones. Contributors own entries through stable internal user IDs; authentication identities are separate for eventual SSO linking.
+MCP, richer collections/exports, and Entra OIDC are subsequent milestones. Contributors own entries through stable internal user IDs; authentication identities are separate for eventual SSO linking.
+
+## Starter catalog and imports
+
+`scripts/catalog.ts` records the curated repository paths, exact commits, license review, taxonomy, and example tasks. The selection includes 12 K-Dense scientific skills (exploration, visualization, statistics, materials, large arrays/tables) and four Anthropic development skills (frontend design, web testing, MCP, skill creation). SkillsMP is a discovery source; packages come directly from GitHub and are served from local storage afterward.
+
+`npm run import:catalog` is repeatable and skips matching commits. Add `-- --archive-examples` to hide the original six demos after all imports succeed; their revisions are retained. Starter entries belong to the credential-free **APS curated library** account and can be maintained by a hub administrator. `npm run seed` remains available for a separate demo database.
+
+To import your own selection, sign in, open **Upload → Import from GitHub**, find the repository's skills, select a directory, preview, classify, and publish. **Manage skill → Refresh from GitHub** checks the tracked branch/tag and creates an immutable revision if the commit changed; a commit-pinned ref stays pinned. Metadata edits retain source attribution. Modified upstream files should be published as a separate upload. Upstream publisher and local maintainer are displayed separately.
+
+Imports preserve source bytes and executable flags, verify Git blob hashes, and include ancestor license/notice files under `_upstream/`. Per-skill license declarations are displayed verbatim alongside included terms; they can describe underlying libraries rather than the repository's own license. The selected Anthropic packages contain Apache-2.0 terms; K-Dense's repository license is MIT. Packages are reviewed starting points, not beamline-validated procedures; dependency requirements remain in their instructions. The importer never executes scripts.
+
+Initial package smoke checks exercised downloaded CSV profiling, HDF5 hierarchy/dtype/shape inspection, and palette contrast auditing on synthetic inputs with Python 3.11 (plus h5py 3.16 for HDF5). These checks cover those bundled tools, not every workflow or agent's skill-selection behavior.
+
+Only public HTTPS GitHub repositories are supported initially. Links, submodules, Git LFS pointers, incomplete repository trees, and oversized packages are rejected. An optional server-side `GITHUB_TOKEN` increases GitHub's API quota; it is sent only to `api.github.com`, never to browsers or raw-file hosts. No token is needed for browsing or downloading the local library.
 
 ## Maintain
 
@@ -46,7 +61,7 @@ npm run test:e2e
 npm run format:check
 ```
 
-Tests use isolated temporary databases. Browser tests cover publishing, anonymous discovery/downloads, cross-account edit attempts, CSRF rejection, revisions, archival, password changes, mobile layouts, and automated accessibility checks. Screenshots are written to `test-results/`. Use `npm run format` before committing.
+Tests use isolated temporary databases. Backend tests cover import boundaries, integrity, licenses, branch resolution, and immutable provenance using mocked upstream responses. Browser tests cover publishing, anonymous discovery/downloads, cross-account edit/refresh attempts, CSRF rejection, revisions, archival, password changes, mobile layouts, and automated accessibility checks. Screenshots are written to `test-results/`. Use `npm run format` before committing.
 
 Use Conventional Commit titles for commits, PRs, and squash merges, such as `feat(catalog): add skill imports` or `fix(auth): invalidate recovered sessions`. Keep changes focused, code straightforward, and documentation here unless a concrete need warrants another document. UI clarity and accessibility are acceptance criteria, not a final polish step.
 

@@ -48,3 +48,13 @@ if ((db.pragma('user_version', { simple: true }) as number) < 1) {
     `);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 2) {
+	db.transaction(() => {
+		db.exec(`
+			ALTER TABLE revisions ADD COLUMN source TEXT;
+			ALTER TABLE skills ADD COLUMN example TEXT NOT NULL DEFAULT '';
+			PRAGMA user_version = 2;
+		`);
+	})();
+}

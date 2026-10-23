@@ -1,5 +1,14 @@
 export type User = { id: string; username: string; displayName: string; isAdmin: boolean };
 export type Category = { id: string; name: string; parent: string | null; count?: number };
+export type ImportSource = {
+	repository: string;
+	directory: string;
+	ref: string;
+	commit: string;
+	commitDate: string;
+	author: string;
+	licenses: { path: string; repositoryPath: string }[];
+};
 export type Skill = {
 	id: string;
 	name: string;
@@ -16,6 +25,8 @@ export type Skill = {
 	revision: number;
 	downloads: number;
 	archived: boolean;
+	source: ImportSource | null;
+	example: string;
 };
 export type Revision = {
 	id: string;
@@ -28,4 +39,5 @@ export type Revision = {
 	license: string;
 	compatibility: string;
 	files: { path: string; size: number; sha256: string }[];
+	source: ImportSource | null;
 };

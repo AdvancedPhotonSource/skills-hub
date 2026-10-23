@@ -24,6 +24,10 @@ const domains = [
 		'Scientific data & analysis',
 		[
 			['reduction', 'Data reduction'],
+			['exploration', 'Data exploration'],
+			['visualization', 'Scientific visualization'],
+			['statistics', 'Statistics & uncertainty'],
+			['materials', 'Materials science'],
 			['imaging', 'Imaging & tomography'],
 			['scattering', 'Scattering & diffraction'],
 			['spectroscopy', 'Spectroscopy']

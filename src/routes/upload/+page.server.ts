@@ -4,4 +4,8 @@ import { editorActions } from '$lib/server/editor';
 export const load = ({ locals }: import('./$types').PageServerLoadEvent) => {
 	if (!locals.user) redirect(303, `${base}/sign-in`);
 };
-export const actions = { preview: editorActions.preview, publish: editorActions.publish };
+export const actions = {
+	discover: editorActions.discover,
+	preview: editorActions.preview,
+	publish: editorActions.publish
+};

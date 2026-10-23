@@ -18,7 +18,11 @@
 				</div>
 				<p>{skill.description}</p>
 				<div class="skill-meta">
-					<a href={`${base}/?author=${encodeURIComponent(skill.username)}`}>{skill.displayName}</a
+					<a
+						href={skill.source
+							? `${base}/?repository=${encodeURIComponent(skill.source.repository)}`
+							: `${base}/?author=${encodeURIComponent(skill.username)}`}
+						>{skill.source?.repository || skill.displayName}</a
 					><span class="meta-divider"></span>{#each skill.categories.slice(0, 2) as category}<a
 							class="category"
 							href={`${base}/?category=${category}`}>{categoryName(category)}</a

@@ -1,9 +1,17 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
-	import { Upload, FileText, ChevronRight, Check, Eye } from '@lucide/svelte';
+	import { Upload, FileText, ChevronRight, Check, Eye, GitBranch, RefreshCw } from '@lucide/svelte';
 	import { categories, roles } from '$lib/taxonomy';
-	import type { Skill } from '$lib/types';
+	import type { Skill, ImportSource } from '$lib/types';
+	import { sourceUrl } from '$lib/source';
+	type Repository = {
+		url: string;
+		ref: string;
+		commit: string;
+		directory: string;
+		directories: string[];
+	};
 	let {
 		skill,
 		form
@@ -11,16 +19,33 @@
 		skill?: Skill;
 		form?: {
 			message?: string;
+			success?: boolean;
+			repository?: Repository;
 			preview?: {
 				name: string;
 				description: string;
 				files: { path: string; size: number }[];
 				html: string;
+				source?: ImportSource;
 			};
 		} | null;
 	} = $props();
 	let pending = $state(false);
 	let chosenFile = $state('');
+	let method = $state('upload');
+	let repositoryInput = $state('');
+	let refInput = $state('');
+	let repository = $state<Repository | null>(null);
+	let directory = $state('');
+	$effect(() => {
+		const discovered = form?.repository;
+		if (discovered) {
+			repository = discovered;
+			repositoryInput = discovered.url;
+			refInput = discovered.ref;
+			directory = discovered.directory || discovered.directories[0] || '.';
+		}
+	});
 </script>
 
 <svelte:head
@@ -42,7 +67,39 @@
 	</div>
 	<div class="editor-layout">
 		<div>
-			{#if form?.message}<div class="notice error" role="alert">{form.message}</div>{/if}
+			{#if form?.message}<div class="notice" class:error={!form.success} role="status">
+					{form.message}
+				</div>{/if}
+			{#if skill?.source}<section class="editor-section source-editor">
+					<h2>Imported from GitHub</h2>
+					<p>
+						<a href={sourceUrl(skill.source)} target="_blank" rel="noreferrer"
+							>{skill.source.repository} / {skill.source.directory || '(root)'}</a
+						>
+					</p>
+					<p class="muted small-text">
+						Tracks {skill.source.ref}. Current commit:
+						<code>{skill.source.commit.slice(0, 12)}</code>. Refreshing creates a new revision when
+						the source changes.
+					</p>
+					<form
+						method="POST"
+						action="?/refresh"
+						use:enhance={() => {
+							pending = true;
+							return async ({ update }) => {
+								await update();
+								pending = false;
+							};
+						}}
+					>
+						<input type="hidden" name="expected" value={skill.revision} /><button
+							class="button"
+							disabled={pending}
+							><RefreshCw size={15} />{pending ? 'Checking GitHub…' : 'Refresh from GitHub'}</button
+						>
+					</form>
+				</section>{/if}
 			<form
 				method="POST"
 				action="?/publish"
@@ -61,41 +118,104 @@
 						<span>1</span>
 						<h2>{skill ? 'Skill files' : 'Choose your files'}</h2>
 					</div>
-					<div class="upload-zone">
-						<Upload size={26} strokeWidth={1.5} /><label for="file"
-							>{chosenFile ||
-								(skill ? 'Upload a replacement package' : 'Choose a SKILL.md or ZIP file')}</label
+					{#if !skill}<fieldset class="import-method">
+							<legend class="sr-only">Skill source</legend><label
+								><input type="radio" name="method" value="upload" bind:group={method} /> Upload files</label
+							><label
+								><input type="radio" name="method" value="github" bind:group={method} /> Import from GitHub</label
+							>
+						</fieldset>{/if}
+					{#if method === 'github'}
+						<div class="field">
+							<label for="repository">GitHub repository or skill URL</label><input
+								id="repository"
+								name="repository"
+								type="url"
+								bind:value={repositoryInput}
+								oninput={() => (repository = null)}
+								placeholder="https://github.com/anthropics/skills"
+								required
+							/><small
+								>Public repositories. Skill folders and their companion files are imported together.</small
+							>
+						</div>
+						<div class="field">
+							<label for="ref">Branch, tag, or commit <span class="muted">(optional)</span></label
+							><input
+								id="ref"
+								name="ref"
+								bind:value={refInput}
+								oninput={() => (repository = null)}
+								placeholder="Repository default branch"
+								maxlength="200"
+							/><small
+								>For branch names containing a slash, use the repository URL and enter the branch
+								here.</small
+							>
+						</div>
+						<button class="button" formaction="?/discover" formnovalidate disabled={pending}
+							><GitBranch size={16} />{pending ? 'Reading repository…' : 'Find skills'}</button
 						>
-						<p>
-							{skill
-								? 'Optional. Leave blank to keep the current files.'
-								: 'A single instruction file, or a skill folder with supporting files.'}
-						</p>
-						<input
-							id="file"
-							name="file"
-							type="file"
-							accept=".md,.zip"
-							required={!skill}
-							onchange={(e) => {
-								chosenFile = e.currentTarget.files?.[0]?.name || '';
-							}}
-						/><small>10 MB upload · 200 files · 25 MB expanded</small>
-					</div>
-					<button
-						class="button small preview-button"
-						formaction="?/preview"
-						formnovalidate
-						disabled={pending || !chosenFile}
-						><Eye size={15} />{pending ? 'Working…' : 'Preview package'}</button
-					>
-					{#if form?.preview}<div class="package-preview">
+						{#if repository}<div class="field directory-picker">
+								<label for="directory">Skill directory</label><select
+									id="directory"
+									name="directory"
+									bind:value={directory}
+									>{#each repository.directories as path}<option value={path || '.'}
+											>{path || '(repository root)'}</option
+										>{/each}</select
+								><input type="hidden" name="commit" value={repository.commit} /><small
+									>Pinned to commit {repository.commit.slice(0, 12)}. Upstream files and license
+									notices are preserved.</small
+								>
+							</div>{/if}
+					{:else if !skill?.source}<div class="upload-zone">
+							<Upload size={26} strokeWidth={1.5} /><label for="file"
+								>{chosenFile ||
+									(skill ? 'Upload a replacement package' : 'Choose a SKILL.md or ZIP file')}</label
+							>
+							<p>
+								{skill
+									? 'Optional. Leave blank to keep the current files.'
+									: 'A single instruction file, or a skill folder with supporting files.'}
+							</p>
+							<input
+								id="file"
+								name="file"
+								type="file"
+								accept=".md,.zip"
+								required={!skill}
+								onchange={(e) => {
+									chosenFile = e.currentTarget.files?.[0]?.name || '';
+								}}
+							/><small>10 MB upload · 200 files · 25 MB expanded</small>
+						</div>{:else}<p class="small-text muted">
+							The current imported files will be kept when you update the catalog information below.
+						</p>{/if}
+					{#if !skill?.source}<button
+							class="button small preview-button"
+							formaction="?/preview"
+							formnovalidate
+							disabled={pending || (method === 'github' ? !repository : !chosenFile)}
+							><Eye size={15} />{pending ? 'Working…' : 'Preview package'}</button
+						>{:else}<a class="button small" href={`${base}/skills/${skill.id}`}
+							>Browse current files</a
+						>{/if}
+					{#if form?.preview && Boolean(form.preview.source) === (method === 'github')}<div
+							class="package-preview"
+						>
 							<div class="preview-heading">
 								<Check size={16} /><strong>{form.preview.name}</strong><span
 									>{form.preview.files.length} files</span
 								>
 							</div>
 							<p>{form.preview.description}</p>
+							{#if form.preview.source}<p>
+									<a href={sourceUrl(form.preview.source)} target="_blank" rel="noreferrer"
+										>{form.preview.source.repository}</a
+									>
+									· {form.preview.source.commit.slice(0, 12)}
+								</p>{/if}
 							<details>
 								<summary>Review instructions and files</summary>
 								<div class="prose">{@html form.preview.html}</div>
@@ -161,9 +281,19 @@
 								>{/each}</select
 						>
 					</div>
+					<div class="field">
+						<label for="example">Example task <span class="muted">(optional)</span></label><textarea
+							id="example"
+							name="example"
+							rows="3"
+							maxlength="1000"
+							placeholder="A concrete task someone could try with this skill."
+							value={skill?.example || ''}
+						></textarea>
+					</div>
 				</section>
 				<div class="form-actions">
-					<button class="button primary" disabled={pending}
+					<button class="button primary" disabled={pending || (method === 'github' && !repository)}
 						><Upload size={16} />{pending
 							? 'Working…'
 							: skill
@@ -216,6 +346,33 @@
 <style>
 	.editor-shell {
 		max-width: 1060px;
+	}
+	.import-method {
+		display: flex;
+		gap: 24px;
+		margin-bottom: 22px;
+		font-size: 13px;
+	}
+	.import-method label {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.import-method input {
+		accent-color: var(--blue);
+	}
+	.directory-picker {
+		margin-top: 20px;
+	}
+	.source-editor {
+		padding: 20px;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		overflow-wrap: anywhere;
+	}
+	.source-editor h2 {
+		font-size: 17px;
 	}
 	.editor-layout {
 		display: grid;

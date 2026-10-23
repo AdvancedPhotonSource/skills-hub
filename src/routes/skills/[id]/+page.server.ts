@@ -31,7 +31,10 @@ export const load = ({ params, url, locals }: import('./$types').PageServerLoadE
 			text: binary ? '' : text,
 			binary,
 			truncated: buffer.length > 100000,
-			html: !binary && /\.md$/i.test(path) ? renderMarkdown(text) : null,
+			html:
+				!binary && /\.md$/i.test(path)
+					? renderMarkdown(text, { path, revision: revision.number, files: revision.files })
+					: null,
 			raw: url.searchParams.get('view') === 'source',
 			canEdit: skill.ownerId === locals.user?.id || Boolean(locals.user?.isAdmin),
 			related: searchSkills(new URLSearchParams({ category: skill.categories[0] || '' }))

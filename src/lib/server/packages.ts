@@ -2,10 +2,11 @@ import { createHash } from 'node:crypto';
 import { fromBuffer } from 'yauzl';
 import { parse } from 'yaml';
 import { HubError } from './errors';
+import type { ImportSource } from '../types';
 
 export const maxUpload = 10 * 1024 * 1024;
-const maxExpanded = 25 * 1024 * 1024;
-const maxFile = 5 * 1024 * 1024;
+export const maxExpanded = 25 * 1024 * 1024;
+export const maxFile = 5 * 1024 * 1024;
 export type PackageFile = { path: string; data: Buffer; mode: number };
 export type SkillPackage = {
 	name: string;
@@ -15,6 +16,7 @@ export type SkillPackage = {
 	version: string;
 	content: string;
 	files: PackageFile[];
+	source?: ImportSource;
 };
 export const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
 

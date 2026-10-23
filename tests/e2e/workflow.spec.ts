@@ -105,6 +105,11 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 		form: { archived: '1', expected: '1' }
 	});
 	expect(await archiveAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
+	const refreshAttempt = await attacker.request.post(`${skillPath}/edit?/refresh`, {
+		headers: { origin },
+		form: { expected: '1' }
+	});
+	expect(await refreshAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
 	const csrf = await page.request.post(`${skillPath}/edit?/archive`, {
 		headers: { origin: 'https://outside.example' },
 		form: { archived: '1', expected: '1' }

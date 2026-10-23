@@ -10,11 +10,14 @@
 		Clock,
 		FolderOpen,
 		Pencil,
-		ArrowRight
+		ArrowRight,
+		GitBranch,
+		ExternalLink
 	} from '@lucide/svelte';
 	import { categoryName } from '$lib/taxonomy';
 	import SaveButton from '$lib/components/SaveButton.svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
+	import { sourceUrl, repositoryUrl } from '$lib/source';
 	let { data } = $props();
 	let copied = $state(false);
 	let copyError = $state('');
@@ -69,9 +72,13 @@
 			</div>
 		</div>
 		<div class="attribution">
-			<span class="avatar">{data.skill.displayName.slice(0, 1).toUpperCase()}</span><a
-				href={`${base}/?author=${encodeURIComponent(data.skill.username)}`}
-				>{data.skill.displayName}</a
+			<span class="avatar"
+				>{(data.revision.source?.author || data.skill.displayName).slice(0, 1).toUpperCase()}</span
+			><a
+				href={data.revision.source
+					? `${base}/?repository=${encodeURIComponent(data.revision.source.repository)}`
+					: `${base}/?author=${encodeURIComponent(data.skill.username)}`}
+				>{data.revision.source?.repository || data.skill.displayName}</a
 			><span class="separator"></span><Clock size={13} /><time datetime={data.revision.createdAt}
 				>{new Date(data.revision.createdAt).toLocaleDateString('en-US', {
 					month: 'short',
@@ -83,6 +90,21 @@
 				>{data.skill.downloads} downloads</span
 			>
 		</div>
+		{#if data.revision.source}<div class="source-line">
+				<a href={sourceUrl(data.revision.source)} target="_blank" rel="noreferrer"
+					><GitBranch size={15} />View original skill <ExternalLink size={12} /></a
+				><span
+					>Imported from commit <a
+						href={`${repositoryUrl(data.revision.source)}/commit/${data.revision.source.commit}`}
+						target="_blank"
+						rel="noreferrer"><code>{data.revision.source.commit.slice(0, 12)}</code></a
+					></span
+				>
+			</div>{/if}
+		{#if data.skill.example}<div class="example-task">
+				<strong>Try this task</strong>
+				<p>{data.skill.example}</p>
+			</div>{/if}
 	</div>
 	<div class="detail-layout">
 		<section class="file-panel">
@@ -121,7 +143,13 @@
 								<p>Download this file to view it in a compatible application.</p>
 							</div>{:else if data.html && !data.raw}<div class="prose">
 								{@html data.html}
-							</div>{:else}<pre class="raw-source">{data.text}</pre>{/if}{#if data.truncated}<div
+							</div>{:else}
+							<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable source needs keyboard focus.) -->
+							<pre
+								class="raw-source"
+								tabindex="0"
+								role="region"
+								aria-label="File source">{data.text}</pre>{/if}{#if data.truncated}<div
 								class="notice"
 								style="margin-top: 20px"
 							>
@@ -145,11 +173,36 @@
 				<div class="install-note">
 					Extract the folder into your agent’s skills directory. Keep supporting files together.
 				</div>
+				{#if data.revision.source}<a
+						class="button source-button"
+						href={sourceUrl(data.revision.source)}
+						target="_blank"
+						rel="noreferrer"><GitBranch size={15} />View on GitHub</a
+					>{/if}
 			</section>
 			<section class="metadata">
 				<h3>About this skill</h3>
 				<dl>
-					<dt>Published by</dt>
+					{#if data.revision.source}<dt>Source publisher</dt>
+						<dd>{data.revision.source.author}</dd>
+						<dt>Repository</dt>
+						<dd>
+							<a href={repositoryUrl(data.revision.source)} target="_blank" rel="noreferrer"
+								>{data.revision.source.repository}</a
+							>
+						</dd>
+						<dt>Source commit date</dt>
+						<dd>
+							{new Date(data.revision.source.commitDate).toLocaleDateString('en-US', {
+								year: 'numeric',
+								month: 'short',
+								day: 'numeric',
+								timeZone: 'UTC'
+							})}
+						</dd>
+						<dt>Tracking ref</dt>
+						<dd>{data.revision.source.ref}</dd>{/if}
+					<dt>{data.revision.source ? 'Maintained on this hub by' : 'Published by'}</dt>
 					<dd>
 						<a href={`${base}/?author=${encodeURIComponent(data.skill.username)}`}
 							>{data.skill.username}</a
@@ -170,8 +223,14 @@
 								>{/each}
 						</dd>{/if}{#if data.skill.role}<dt>Useful for</dt>
 						<dd>{data.skill.role}</dd>{/if}
-					<dt>License</dt>
+					<dt>{data.revision.source ? 'Upstream license declaration' : 'License'}</dt>
 					<dd>{data.revision.license || 'Not specified'}</dd>
+					{#if data.revision.source?.licenses.length}<dt>Included license notices</dt>
+						<dd class="license-links">
+							{#each data.revision.source.licenses as license}<a href={fileUrl(license.path)}
+									>{license.path}</a
+								>{/each}
+						</dd>{/if}
 					{#if data.revision.compatibility}<dt>Requirements</dt>
 						<dd>{data.revision.compatibility}</dd>{/if}
 					<dt>Package checksum</dt>
@@ -215,6 +274,45 @@
 <style>
 	.detail-shell {
 		max-width: 1240px;
+	}
+	.source-line {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 20px;
+		margin-top: 18px;
+		font-size: 12px;
+		color: var(--muted);
+	}
+	.source-line > a {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.source-line code {
+		font-size: 11px;
+	}
+	.example-task {
+		margin-top: 23px;
+		border-left: 3px solid #bfd3f1;
+		padding: 4px 0 4px 17px;
+		max-width: 800px;
+	}
+	.example-task strong {
+		font-size: 12px;
+		color: #405b80;
+	}
+	.example-task p {
+		font-size: 13px;
+		margin: 5px 0 0;
+	}
+	.license-links {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+	.source-button {
+		margin-top: 12px;
 	}
 	.detail-heading {
 		display: flex;
@@ -470,6 +568,7 @@
 		.file-tree {
 			flex-direction: row;
 			flex-wrap: wrap;
+			max-height: 200px;
 			border-right: 0;
 			border-bottom: 1px solid var(--line);
 		}
