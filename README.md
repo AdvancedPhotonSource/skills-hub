@@ -21,20 +21,27 @@ Open http://127.0.0.1:5173. Create an account to publish; browsing and downloads
 - SKILL.md/ZIP uploads, package previews, immutable revisions, historical downloads, and archival.
 - Public GitHub imports with directory selection, complete companion files, source/license links, pinned commits, and owner-requested refresh.
 - Sanitized Markdown, file browsing, installation instructions, and browser-local saved skills.
+- Prompt/command installation with visible, copyable text and npx/bunx/pnpm options; a collapsible, color-coded file explorer with file sizes.
 - Read API: `GET /api/v1/skills`, `/api/v1/skills/:id`, and `/api/v1/categories`. Search accepts `q`, `category`, `role`, `tag`, `author` (hub maintainer or upstream publisher), `repository` (`owner/repo`), `origin=imported|uploaded`, `days`, `exact=1`, `sort=relevance|recent|downloads`, and `page` (20 results per page). Detail/revision records include import provenance.
+- **API Docs** at `/docs/api`: endpoint and parameter reference, cURL/JavaScript/Python examples, copy controls, and a live read-only request playground with formatted JSON and HTTP status. The footer links here; machine endpoints continue to return JSON.
 
 MCP, richer collections/exports, and Entra OIDC are subsequent milestones. Contributors own entries through stable internal user IDs; authentication identities are separate for eventual SSO linking.
 
 ## Starter catalog and imports
 
-`scripts/catalog.ts` records the curated repository paths, exact commits, license review, taxonomy, and example tasks. The 22-skill selection includes 12 K-Dense scientific skills, four Anthropic development skills, and six APS-specific entries. SkillsMP and the APS GitHub organization are discovery sources; imported packages come directly from GitHub and are served from local storage afterward.
+`scripts/catalog.ts` records the curated repository paths, exact commits, license review, taxonomy, and example tasks. The 26-skill selection includes 12 K-Dense scientific skills, four Anthropic development skills, nine APS-specific entries, and Browser Use. SkillsMP and the APS GitHub organization are discovery sources; imported packages come directly from GitHub and are served from local storage afterward.
 
-| APS skill                                         | Source and scope                                                                                                                                                                       |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `add-plugin`, `add-reconstructor`, `check-layers` | Imported unchanged from Ptychodus's `.claude/skills/`; use within a Ptychodus checkout, with its `CLAUDE.md` and companion development skills.                                         |
-| `create-eaa-compatible-mcp-servers`               | Imported unchanged from EAA's `developer_tools/`; instrument-gateway design and payload contracts. Upstream supplies no applicable license declaration at the reviewed revision.       |
-| `aps-eaa-workflow-setup`                          | Hub-authored in `skills/`; Python EAA setup, skills, MCP, persistence, and a terminal-agent example. Records the upstream EAA-Pi migration notice.                                     |
-| `aps-lauelab-indexing`                            | Hub-authored in `skills/`; 34-ID-E Laue indexing, calibration inputs, coordinate conventions, results, and a batch example. Execution requires upstream's supported Linux environment. |
+| APS skill                                         | Source and scope                                                                                                                                                                                                            |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add-plugin`, `add-reconstructor`, `check-layers` | Imported unchanged from Ptychodus's `.claude/skills/`; use within a Ptychodus checkout, with its `CLAUDE.md` and companion development skills.                                                                              |
+| `create-eaa-compatible-mcp-servers`               | Imported unchanged from EAA's `developer_tools/`; instrument-gateway design and payload contracts. Upstream supplies no applicable license declaration at the reviewed revision.                                            |
+| `aps-eaa-workflow-setup`                          | Hub-authored in `skills/`; Python EAA setup, skills, MCP, persistence, and a terminal-agent example. Records the upstream EAA-Pi migration notice.                                                                          |
+| `aps-lauelab-indexing`                            | Hub-authored in `skills/`; 34-ID-E Laue indexing, calibration inputs, coordinate conventions, results, and a batch example. Execution requires upstream's supported Linux environment.                                      |
+| `apexa-report`                                    | Imported unchanged from APEXA's `.agents/skills/apexa-report`; self-contained run reports and experiment logbooks. Requires APEXA's report/logbook tools and run manifests. Repository license retained.                    |
+| `aps-2idd-control-suite`                          | Hub-authored in `skills/`; APS 2-ID-D FastMCP/QueueServer setup, health and image-processing contracts, units, and scan semantics. Upstream has no packaged skill or applicable license declaration at the reviewed commit. |
+| `aps-gsas-ii-powder-refinement`                   | Hub-authored in `skills/`; direct GSASIIscriptable import, staged Rietveld analysis, result interpretation, and a project-preparation example. Requires a working GSAS-II installation and experiment-specific inputs.      |
+
+`browser-use` is imported unchanged from `browser-use/browser-use` at `browser_use/skills/browser-use`, the source linked by [the requested SkillsMP entry](https://skillsmp.com/creators/browser-use/browser-use/browser-use-skills-browser-use). Its MIT license is included. The skill documents the separate Browser Use/CDP runtime; installation of the skill alone does not install that runtime.
 
 The authored packages link to pinned upstream documentation and identify local authorship explicitly. Their example scripts have been syntax/CLI checked; representative agent tasks and beamline execution are deferred.
 
@@ -47,6 +54,8 @@ Imports preserve source bytes and executable flags, verify Git blob hashes, and 
 Initial package smoke checks exercised downloaded CSV profiling, HDF5 hierarchy/dtype/shape inspection, and palette contrast auditing on synthetic inputs with Python 3.11 (plus h5py 3.16 for HDF5). These checks cover those bundled tools, not every workflow or agent's skill-selection behavior.
 
 Only public HTTPS GitHub repositories are supported initially. Links, submodules, Git LFS pointers, incomplete repository trees, and oversized packages are rejected. An optional server-side `GITHUB_TOKEN` increases GitHub's API quota; it is sent only to `api.github.com`, never to browsers or raw-file hosts. No token is needed for browsing or downloading the local library.
+
+The **Use this skill** card links to an imported skill's GitHub directory. For local contributions, `metadata.source-repository` in the package frontmatter supplies a related GitHub project link, explicitly separate from import provenance. Installation always targets the selected hub revision's complete ZIP. Command options use `skills@1.7.4` (Node.js 22.20+) through npx, bunx, or pnpm dlx; prompt instructions live at `/skill-install/prompt.md`. The installing environment needs access to the hub, plus the npm registry for commands. The CLI is not an application dependency.
 
 ## Maintain
 

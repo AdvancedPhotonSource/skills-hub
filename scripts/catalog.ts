@@ -205,6 +205,40 @@ export const starterCatalog: {
 					'Review an MCP gateway for our existing Bluesky Queue Server against EAA’s documented payload contracts. Check tool schemas, image paths, get_attribute_payload, and the separation between gateway and instrument execution.'
 			}
 		]
+	},
+	{
+		repository: 'AdvancedPhotonSource/APEXA-APS-Beamline-Assistant',
+		commit: '6e7e7bc9d3460a06ff772f15473de6f4b09c4e6e',
+		ref: 'main',
+		license: 'Argonne open-source terms in repository LICENSE; retained in the package',
+		skills: [
+			{
+				name: 'apexa-report',
+				directory: '.agents/skills/apexa-report',
+				categories: ['reporting', 'acquisition'],
+				tags: ['apexa', 'midas', 'logbook', 'html'],
+				role: 'Beamline scientist',
+				example:
+					'In APEXA, generate a self-contained HTML report from this completed calibration run and its ESAF. Include bound-limited parameters and quote the latest experiment logbook entries with their timestamps.'
+			}
+		]
+	},
+	{
+		repository: 'browser-use/browser-use',
+		commit: '3df5806a0d097a1546d92c49bcf1b28c9972c3bd',
+		ref: 'main',
+		license: 'MIT (repository LICENSE; retained in the package)',
+		skills: [
+			{
+				name: 'browser-use',
+				directory: 'browser_use/skills/browser-use',
+				categories: ['web', 'agent-workflows', 'testing'],
+				tags: ['browser-use', 'browser', 'cdp', 'automation'],
+				role: 'Software engineer',
+				example:
+					'Using my configured Browser Use connection, open the local Skills Hub, search for GSAS-II, inspect its installation card, and capture a screenshot of the result.'
+			}
+		]
 	}
 ];
 
@@ -225,5 +259,21 @@ export const localSkills: CatalogSkill[] = [
 		role: 'Researcher',
 		example:
 			'Prepare a reproducible lauelab indexing workflow for these APS 34-ID-E frames and their matching detector geometry and crystal XML files. Summarize peaks, orientations, unique indexed peaks, and any input failures.'
+	},
+	{
+		name: 'aps-2idd-control-suite',
+		categories: ['mcp', 'bluesky', 'acquisition'],
+		tags: ['2-id-d', 'fastmcp', 'queueserver', 'epics', 'xrf'],
+		role: 'Controls engineer',
+		example:
+			'Check our APS 2-ID-D control-suite MCP connection and QueueServer state, then reprocess this existing MDA file into an XRF image. Report the returned artifacts and any missing configuration.'
+	},
+	{
+		name: 'aps-gsas-ii-powder-refinement',
+		categories: ['scattering', 'materials', 'python'],
+		tags: ['gsas-ii', 'rietveld', 'crystallography', 'powder-diffraction'],
+		role: 'Researcher',
+		example:
+			'Prepare a GSAS-II project from my powder pattern, matching instrument parameters, and CIF. Propose staged refinement settings, retain the input project, and report residuals and model limitations before extending to a series.'
 	}
 ];

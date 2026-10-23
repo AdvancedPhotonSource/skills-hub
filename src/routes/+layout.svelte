@@ -66,5 +66,5 @@
 <main id="main">{@render children()}</main>
 <footer class="site-footer shell">
 	<span>APS Skills Hub <span class="footer-divider">/</span> Built for shared expertise.</span>
-	<div><a href={`${base}/api/v1/skills`}>Catalog API</a><span>Argonne internal</span></div>
+	<div><a href={`${base}/docs/api`}>API Docs</a><span>Argonne internal</span></div>
 </footer>
