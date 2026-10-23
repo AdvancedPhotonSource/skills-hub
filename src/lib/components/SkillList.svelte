@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { FileText, ArrowUpRight, Download } from '@lucide/svelte';
-	import { categoryName } from '$lib/taxonomy';
+	import { categoryName, categoryTone } from '$lib/taxonomy';
 	import type { Skill } from '$lib/types';
 	let { skills }: { skills: Skill[] } = $props();
 </script>
@@ -9,7 +9,9 @@
 <div class="skill-list">
 	{#each skills as skill}
 		<article class="skill-row">
-			<div class="skill-icon"><FileText size={19} strokeWidth={1.6} /></div>
+			<div class="skill-icon tone" data-tone={categoryTone(skill.categories[0])}>
+				<FileText size={19} strokeWidth={1.6} />
+			</div>
 			<div class="skill-body">
 				<div class="title-row">
 					<a class="skill-name" href={`${base}/skills/${skill.id}`}
@@ -24,7 +26,8 @@
 							: `${base}/?author=${encodeURIComponent(skill.username)}`}
 						>{skill.source?.repository || skill.displayName}</a
 					><span class="meta-divider"></span>{#each skill.categories.slice(0, 2) as category}<a
-							class="category"
+							class="category category-chip"
+							data-tone={categoryTone(category)}
 							href={`${base}/?category=${category}`}>{categoryName(category)}</a
 						>{/each}
 				</div>
@@ -52,13 +55,16 @@
 		padding: 24px 0;
 		border-bottom: 1px solid var(--line);
 	}
+	.skill-row:hover {
+		background: #fafbfd;
+	}
 	.skill-icon {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: #f0f5fd;
-		border: 1px solid #e2eafa;
-		color: #4776b7;
+		background: var(--tone-bg);
+		border: 1px solid var(--tone-line);
+		color: var(--tone);
 		width: 42px;
 		height: 46px;
 		flex-shrink: 0;
@@ -113,10 +119,10 @@
 		color: #63738a;
 	}
 	.skill-meta .category {
-		background: #f4f6f9;
+		background: var(--tone-bg);
 		padding: 2px 7px;
 		border-radius: 3px;
-		color: #657187;
+		color: var(--tone);
 	}
 	.meta-divider {
 		height: 12px;

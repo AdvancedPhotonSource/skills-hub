@@ -14,6 +14,9 @@
 	--line: #e4e9ef;
 	--surface: #f7f9fc;
 	--radius: 8px;
+	--tone: #275da6;
+	--tone-bg: #edf3fc;
+	--tone-line: #d7e4f5;
 	font-size: 15px;
 	line-height: 1.6;
 }
@@ -318,6 +321,31 @@ button.primary:hover {
 	background: var(--blue-light);
 	border-color: #dce7fa;
 }
+[data-tone='teal'] {
+	--tone: #226a5a;
+	--tone-bg: #edf7f3;
+	--tone-line: #cfe7de;
+}
+[data-tone='violet'] {
+	--tone: #70429c;
+	--tone-bg: #f4eefb;
+	--tone-line: #e5d8f3;
+}
+[data-tone='amber'] {
+	--tone: #8b5a0b;
+	--tone-bg: #fff7e7;
+	--tone-line: #efdfb8;
+}
+[data-tone='rose'] {
+	--tone: #a14566;
+	--tone-bg: #fcf0f4;
+	--tone-line: #f0d6e0;
+}
+.category-chip {
+	color: var(--tone);
+	background: var(--tone-bg);
+	border-color: var(--tone-line);
+}
 .tags {
 	display: flex;
 	flex-wrap: wrap;
@@ -468,8 +496,9 @@ fieldset legend {
 }
 .prose pre {
 	overflow: auto;
-	background: #f4f6f9;
-	border: 1px solid var(--line);
+	background: #17283d;
+	color: #deebf6;
+	border: 1px solid #263c56;
 	padding: 16px;
 	border-radius: 6px;
 	line-height: 1.7;
@@ -481,6 +510,7 @@ fieldset legend {
 }
 .prose pre code {
 	padding: 0;
+	background: transparent;
 }
 .prose blockquote {
 	margin: 20px 0;
@@ -499,6 +529,10 @@ fieldset legend {
 	border: 1px solid var(--line);
 	padding: 8px 12px;
 	text-align: left;
+}
+.prose th {
+	background: #f0f5fa;
+	color: #304963;
 }
 .prose li {
 	margin: 5px 0;

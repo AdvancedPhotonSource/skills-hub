@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { unzipSync } from 'fflate';
+import { unzipSync, zipSync } from 'fflate';
 import AxeBuilder from '@axe-core/playwright';
 
 const source =
-	'---\nname: browser-test-skill\ndescription: Explore HDF5 arrays and metadata with Python\n---\n\n# Explore HDF5 data\n\nRead metadata before loading arrays.\n';
+	'---\nname: browser-test-skill\ndescription: Explore HDF5 arrays and metadata with Python\nmetadata:\n  source-repository: https://github.com/AdvancedPhotonSource/lauelab\n---\n\n# Explore HDF5 data\n\nRead metadata before loading arrays.\n';
 const origin = 'http://127.0.0.1:4173';
 
 test('publish, discover, download, protect ownership, and revise a skill', async ({
@@ -33,9 +33,19 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
 			.violations
 	).toEqual([]);
-	await page
-		.locator('input[type=file]')
-		.setInputFiles({ name: 'SKILL.md', mimeType: 'text/markdown', buffer: Buffer.from(source) });
+	await page.locator('input[type=file]').setInputFiles({
+		name: 'skill.zip',
+		mimeType: 'application/zip',
+		buffer: Buffer.from(
+			zipSync({
+				'SKILL.md': Buffer.from(source),
+				'examples/analyze.py': Buffer.from('print("example")\n'),
+				'references/notes.md': Buffer.from(
+					'# Reference notes\n\nUse the measured detector geometry.\n'
+				)
+			})
+		)
+	});
 	await page.getByRole('button', { name: 'Preview package' }).click();
 	await expect(page.getByText('browser-test-skill', { exact: true })).toBeVisible();
 	await page.locator('summary').filter({ hasText: 'Scientific data & analysis' }).click();
@@ -44,7 +54,40 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	await page.getByRole('button', { name: 'Publish skill', exact: true }).click();
 	await expect(page).toHaveURL(/\/skills\/[a-f0-9-]+$/);
 	const skillPath = new URL(page.url()).pathname;
+	const serverHtml = await (await page.request.get(skillPath)).text();
+	expect(serverHtml).toContain(`${origin}${skillPath}/download?revision=1`);
+	expect(serverHtml).not.toContain(`${origin}..`);
 	await expect(page.getByRole('heading', { name: 'Explore HDF5 data' })).toBeVisible();
+	const install = page.getByRole('region', { name: 'Use this skill' });
+	await expect(install.getByRole('link', { name: /View on GitHub/ })).toHaveAttribute(
+		'href',
+		'https://github.com/AdvancedPhotonSource/lauelab'
+	);
+	await expect(page.getByLabel('Installation prompt')).toHaveValue(
+		new RegExp(`${skillPath}/download\\?revision=1`)
+	);
+	const guide = await page.request.get('/skill-install/prompt.md');
+	expect(guide.headers()['content-type']).toContain('text/markdown');
+	expect(await guide.text()).toContain('complete named skill directory');
+	await install.getByRole('button', { name: 'Command', exact: true }).click();
+	for (const runner of ['npx', 'bunx', 'pnpm']) {
+		await install.getByRole('button', { name: runner, exact: true }).click();
+		await expect(page.getByLabel('Installation command')).toHaveValue(
+			`${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1.7.4 add '${origin}${skillPath}/download?revision=1' --skill 'browser-test-skill'`
+		);
+	}
+	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+	await install.getByRole('button', { name: 'Copy command', exact: true }).click();
+	await expect(install.getByRole('button', { name: 'Copied', exact: true })).toBeVisible();
+	expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+		'pnpm dlx skills@1.7.4'
+	);
+	await install.getByRole('button', { name: 'Prompt', exact: true }).click();
+	await expect(install.getByRole('button', { name: 'Copy prompt', exact: true })).toBeVisible();
+	const files = page.getByRole('navigation', { name: 'Skill files' });
+	await files.getByRole('link', { name: /analyze.py/ }).click();
+	await expect(page.getByRole('region', { name: 'File source' })).toContainText('print("example")');
+	await files.getByRole('link', { name: /SKILL.md/ }).click();
 	expect(
 		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
 			.violations

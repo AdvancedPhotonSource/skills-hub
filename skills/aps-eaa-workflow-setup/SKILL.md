@@ -11,7 +11,7 @@ metadata:
 
 # Set up an EAA workflow
 
-[EAA repository](https://github.com/AdvancedPhotonSource/EAA) · [Reviewed source and integration notes](references/integration.md)
+[Reviewed source and integration notes](references/integration.md)
 
 This is a hub-authored skill based on the linked EAA documentation and implementation. It is not an upstream EAA skill or a claim of maintainer endorsement.
 

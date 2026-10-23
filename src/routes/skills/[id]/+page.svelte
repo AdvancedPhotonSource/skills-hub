@@ -1,44 +1,26 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { page } from '$app/state';
 	import {
 		Download,
-		Copy,
-		Check,
 		FileText,
 		ChevronRight,
 		Clock,
-		FolderOpen,
 		Pencil,
 		ArrowRight,
 		GitBranch,
 		ExternalLink
 	} from '@lucide/svelte';
-	import { categoryName } from '$lib/taxonomy';
-	import SaveButton from '$lib/components/SaveButton.svelte';
+	import { categoryName, categoryTone } from '$lib/taxonomy';
+	import InstallCard from '$lib/components/InstallCard.svelte';
+	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
 	import { sourceUrl, repositoryUrl } from '$lib/source';
 	let { data } = $props();
-	let copied = $state(false);
-	let copyError = $state('');
 	const fileUrl = (path: string, view = '') => {
 		const q = new URLSearchParams({ revision: String(data.revision.number), file: path });
 		if (view) q.set('view', view);
 		return `?${q}`;
 	};
-	async function copyInstructions() {
-		const url = `${page.url.origin}${base}/skills/${data.skill.id}/download?revision=${data.revision.number}`;
-		try {
-			await navigator.clipboard.writeText(
-				`Download ${url}\nExtract the ${data.revision.name}/ folder and place it in the skills directory supported by your agent. Keep SKILL.md and all companion files together.\nRead SKILL.md for environment requirements and usage.`
-			);
-			copied = true;
-			copyError = '';
-		} catch {
-			copyError =
-				'Clipboard unavailable. Download the ZIP and copy the extracted folder into your agent’s skills directory.';
-		}
-	}
 </script>
 
 <svelte:head
@@ -62,11 +44,16 @@
 				<a href={`${base}/skills/${data.skill.id}`}>View the current revision</a>
 			</div>{/if}
 		<div class="detail-heading">
-			<div class="detail-icon"><FileText size={28} strokeWidth={1.4} /></div>
+			<div class="detail-icon tone" data-tone={categoryTone(data.skill.categories[0])}>
+				<FileText size={28} strokeWidth={1.4} />
+			</div>
 			<div>
 				<div class="name-line">
 					<h1>{data.revision.name}</h1>
 					<span class="badge">Revision {data.revision.number}</span>
+					<span class="badge category-chip" data-tone={data.revision.source ? 'violet' : 'teal'}
+						>{data.revision.source ? 'Repository import' : 'Local contribution'}</span
+					>
 				</div>
 				<p>{data.revision.description}</p>
 			</div>
@@ -107,21 +94,13 @@
 			</div>{/if}
 	</div>
 	<div class="detail-layout">
-		<section class="file-panel">
-			<div class="file-panel-title">
-				<FolderOpen size={16} />
-				<h2>Skill files</h2>
-				<span
-					>{data.revision.files.length} {data.revision.files.length === 1 ? 'file' : 'files'}</span
-				>
+		<section class="source-section" aria-labelledby="source-heading">
+			<div class="source-intro">
+				<h2 id="source-heading">Review the source files</h2>
+				<p>Read the instructions and companion files before adding this skill to your agent.</p>
 			</div>
-			<div class="file-layout">
-				<nav class="file-tree" aria-label="Skill files">
-					{#each data.revision.files as file}<a
-							class:current={data.path === file.path}
-							href={fileUrl(file.path)}><FileText size={13} /><span>{file.path}</span></a
-						>{/each}
-				</nav>
+			<div class="file-panel">
+				<FileExplorer files={data.revision.files} path={data.path} {fileUrl} />
 				<div class="file-content">
 					<div class="file-toolbar">
 						<span>{data.path}</span>
@@ -160,26 +139,11 @@
 			</div>
 		</section>
 		<aside class="detail-sidebar">
-			<section class="install-panel">
-				<h2>Use this skill</h2>
-				<p>A portable package for your agent.</p>
-				<a
-					class="button primary"
-					href={`${base}/skills/${data.skill.id}/download?revision=${data.revision.number}`}
-					><Download size={16} />Download ZIP</a
-				><button class="button" onclick={copyInstructions}
-					>{#if copied}<Check size={16} />Copied{:else}<Copy size={15} />Copy install instructions{/if}</button
-				><SaveButton id={data.skill.id} />{#if copyError}<p role="status">{copyError}</p>{/if}
-				<div class="install-note">
-					Extract the folder into your agent’s skills directory. Keep supporting files together.
-				</div>
-				{#if data.revision.source}<a
-						class="button source-button"
-						href={sourceUrl(data.revision.source)}
-						target="_blank"
-						rel="noreferrer"><GitBranch size={15} />View on GitHub</a
-					>{/if}
-			</section>
+			<InstallCard
+				id={data.skill.id}
+				revision={data.revision}
+				projectRepository={data.projectRepository}
+			/>
 			<section class="metadata">
 				<h3>About this skill</h3>
 				<dl>
@@ -211,7 +175,8 @@
 					<dt>Categories</dt>
 					<dd class="tags">
 						{#each data.skill.categories as category}<a
-								class="badge blue"
+								class="badge category-chip"
+								data-tone={categoryTone(category)}
 								href={`${base}/?category=${category}`}>{categoryName(category)}</a
 							>{/each}
 					</dd>
@@ -294,13 +259,16 @@
 	}
 	.example-task {
 		margin-top: 23px;
-		border-left: 3px solid #bfd3f1;
-		padding: 4px 0 4px 17px;
+		border: 1px solid #d7e8e4;
+		border-left: 3px solid #4b9584;
+		background: #f4faf8;
+		border-radius: 0 9px 9px 0;
+		padding: 13px 18px;
 		max-width: 800px;
 	}
 	.example-task strong {
 		font-size: 12px;
-		color: #405b80;
+		color: #276457;
 	}
 	.example-task p {
 		font-size: 13px;
@@ -310,9 +278,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 5px;
-	}
-	.source-button {
-		margin-top: 12px;
 	}
 	.detail-heading {
 		display: flex;
@@ -324,9 +289,9 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		background: #eef4fd;
-		border: 1px solid #dfe9f8;
-		color: #507db9;
+		background: var(--tone-bg);
+		border: 1px solid var(--tone-line);
+		color: var(--tone);
 		border-radius: 10px;
 		flex-shrink: 0;
 	}
@@ -372,67 +337,29 @@
 	}
 	.detail-layout {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 260px;
+		grid-template-columns: minmax(0, 1fr) 340px;
 		gap: 30px;
 		align-items: start;
 	}
 	.file-panel {
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: 12px;
 		overflow: hidden;
 	}
-	.file-panel-title {
-		display: flex;
-		align-items: center;
-		gap: 9px;
-		padding: 16px 20px;
-		border-bottom: 1px solid var(--line);
-		color: #71829a;
-		background: #fcfdff;
-	}
-	.file-panel-title h2 {
-		font-size: 13px;
-		margin: 0;
-		color: #465a75;
-		letter-spacing: 0;
-	}
-	.file-panel-title > span {
-		margin-left: auto;
-		font-size: 11px;
-		color: var(--muted);
-	}
-	.file-layout {
-		display: grid;
-		grid-template-columns: 155px minmax(0, 1fr);
-		min-height: 440px;
-	}
-	.file-tree {
-		display: flex;
-		align-items: stretch;
-		flex-direction: column;
-		gap: 3px;
-		padding: 12px 7px;
-		background: #fcfdff;
-		border-right: 1px solid var(--line);
+	.source-section {
 		min-width: 0;
-		overflow: auto;
 	}
-	.file-tree a {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 8px 7px;
+	.source-intro {
+		margin: 0 0 19px;
+	}
+	.source-intro h2 {
+		font-size: 21px;
+		margin-bottom: 7px;
+	}
+	.source-intro p {
 		color: var(--muted);
-		font-size: 10px;
-		font-weight: 400;
-		border-radius: 4px;
-	}
-	.file-tree a > span {
-		overflow-wrap: anywhere;
-	}
-	.file-tree a.current {
-		color: #3468b1;
-		background: #ecf2fc;
+		font-size: 12px;
+		margin: 0;
 	}
 	.file-content {
 		min-width: 0;
@@ -442,7 +369,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 10px;
-		padding: 12px 20px;
+		padding: 13px 20px;
 		border-bottom: 1px solid var(--line);
 		font-size: 11px;
 		color: var(--muted);
@@ -459,37 +386,15 @@
 		color: var(--muted);
 	}
 	.file-toolbar a.chosen {
-		color: var(--blue);
+		color: #175ac6;
+		background: #eaf1fd;
+		border-radius: 4px;
+	}
+	.file-toolbar a {
+		padding: 4px 7px;
 	}
 	.file-body {
 		padding: 27px;
-	}
-	.detail-sidebar h2 {
-		font-size: 17px;
-		margin-bottom: 8px;
-	}
-	.install-panel {
-		background: var(--surface);
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		padding: 21px;
-	}
-	.install-panel > p {
-		font-size: 12px;
-		color: var(--muted);
-		margin-bottom: 18px;
-	}
-	.install-panel :global(.button) {
-		width: 100%;
-		margin-bottom: 9px;
-		font-size: 12px;
-		padding-inline: 8px;
-	}
-	.install-note {
-		font-size: 11px;
-		color: var(--muted);
-		line-height: 1.8;
-		margin-top: 7px;
 	}
 	.metadata {
 		padding: 25px 4px 10px;
@@ -558,28 +463,14 @@
 	}
 	@media (max-width: 1000px) {
 		.detail-layout {
-			grid-template-columns: minmax(0, 1fr) 230px;
+			grid-template-columns: minmax(0, 1fr) 310px;
 			gap: 20px;
-		}
-		.file-layout {
-			grid-template-columns: 1fr;
-			grid-template-rows: auto 1fr;
-		}
-		.file-tree {
-			flex-direction: row;
-			flex-wrap: wrap;
-			max-height: 200px;
-			border-right: 0;
-			border-bottom: 1px solid var(--line);
 		}
 		.file-body {
 			padding: 22px;
 		}
 	}
-	@media (max-width: 760px) {
-		.file-layout {
-			min-height: 0;
-		}
+	@media (max-width: 900px) {
 		.detail-layout {
 			display: flex;
 			flex-direction: column;
@@ -587,18 +478,7 @@
 		.detail-sidebar {
 			display: contents;
 		}
-		.install-panel {
-			order: -1;
-			width: 100%;
-		}
-		.install-panel :global(.button) {
-			width: auto;
-			margin-right: 5px;
-		}
-		.install-panel > p {
-			margin-bottom: 12px;
-		}
-		.file-panel {
+		.source-section {
 			width: 100%;
 		}
 		.metadata {
@@ -620,9 +500,6 @@
 		}
 		.detail-heading {
 			gap: 13px;
-		}
-		.file-tree {
-			display: flex;
 		}
 		.file-body {
 			padding: 18px;

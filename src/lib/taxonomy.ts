@@ -93,3 +93,13 @@ export const roles = [
 	'System administrator'
 ];
 export const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
+
+export function categoryTone(id?: string) {
+	const category = categories.find((entry) => entry.id === id);
+	const domain = category?.parent || id;
+	if (['science', 'research'].includes(domain || '')) return 'teal';
+	if (['agents', 'computing'].includes(domain || '')) return 'violet';
+	if (['beamline', 'controls'].includes(domain || '')) return 'amber';
+	if (domain === 'productivity') return 'rose';
+	return 'blue';
+}

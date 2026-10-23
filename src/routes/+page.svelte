@@ -210,9 +210,9 @@
 				>
 			</div>{/if}
 		{#if data.pages > 1}<div class="pagination">
-				<a href={`${urlWith('page', String(data.page - 1))}`} class:disabled={data.page <= 1}
-					>Previous</a
-				><span>Page {data.page} of {data.pages}</span>{#if data.page < data.pages}<a
+				{#if data.page > 1}<a href={urlWith('page', String(data.page - 1))}>Previous</a>
+				{:else}<span aria-disabled="true">Previous</span>{/if}
+				<span>Page {data.page} of {data.pages}</span>{#if data.page < data.pages}<a
 						href={urlWith('page', String(data.page + 1))}>Next</a
 					>{/if}
 			</div>{/if}
@@ -498,10 +498,6 @@
 	}
 	.library-note code {
 		font-size: 11px;
-	}
-	.disabled {
-		pointer-events: none;
-		opacity: 0.4;
 	}
 	.compact .hero-inner {
 		padding-block: 28px;

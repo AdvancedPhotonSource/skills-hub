@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { ArrowUpRight, Layers } from '@lucide/svelte';
+	import { categoryTone } from '$lib/taxonomy';
 	let { data } = $props();
 </script>
 
@@ -15,7 +16,10 @@
 		</p>
 	</div>
 	<div class="category-grid">
-		{#each data.taxonomy.filter((c) => !c.parent) as domain}<section>
+		{#each data.taxonomy.filter((c) => !c.parent) as domain}<section
+				class="tone"
+				data-tone={categoryTone(domain.id)}
+			>
 				<div class="domain-head">
 					<a href={`${base}/?category=${domain.id}`}
 						><h2>{domain.name}</h2>
@@ -41,7 +45,9 @@
 	}
 	.category-grid > section {
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-top: 3px solid var(--tone);
+		background: linear-gradient(180deg, var(--tone-bg), #fff 115px);
+		border-radius: 12px;
 		padding: 24px;
 	}
 	.domain-head > a {
@@ -49,7 +55,7 @@
 		justify-content: space-between;
 		align-items: center;
 		gap: 10px;
-		color: #324866;
+		color: var(--tone);
 	}
 	.domain-head h2 {
 		font-size: 16px;

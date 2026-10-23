@@ -12,7 +12,7 @@ metadata:
 
 # Index APS Laue diffraction frames
 
-[lauelab repository](https://github.com/AdvancedPhotonSource/lauelab) · [Pinned references and provenance](references/sources.md)
+[Pinned references and provenance](references/sources.md)
 
 Hub-authored guidance based on lauelab's public documentation. lauelab is alpha software; match the API to the installed revision before applying these instructions.
 

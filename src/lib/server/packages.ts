@@ -3,6 +3,7 @@ import { fromBuffer } from 'yauzl';
 import { parse } from 'yaml';
 import { HubError } from './errors';
 import type { ImportSource } from '../types';
+import { projectRepository } from '../source';
 
 export const maxUpload = 10 * 1024 * 1024;
 export const maxExpanded = 25 * 1024 * 1024;
@@ -17,6 +18,7 @@ export type SkillPackage = {
 	content: string;
 	files: PackageFile[];
 	source?: ImportSource;
+	projectRepository: string | null;
 };
 export const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
 
@@ -147,6 +149,7 @@ export function validatePackage(files: PackageFile[]): SkillPackage {
 		metadata && typeof metadata.version === 'string' ? metadata.version.slice(0, 80) : '';
 	return {
 		name,
+		projectRepository: projectRepository(metadata?.['source-repository']),
 		description,
 		license: textField('license', 500),
 		compatibility: textField('compatibility', 500),

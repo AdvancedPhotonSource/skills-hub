@@ -8,6 +8,7 @@ import {
 } from '$lib/server/catalog';
 import { renderMarkdown } from '$lib/server/markdown';
 import { HubError } from '$lib/server/errors';
+import { validatePackage } from '$lib/server/packages';
 
 export const load = ({ params, url, locals }: import('./$types').PageServerLoadEvent) => {
 	try {
@@ -21,6 +22,15 @@ export const load = ({ params, url, locals }: import('./$types').PageServerLoadE
 		const binary = buffer.subarray(0, 8000).includes(0) || text.includes('\ufffd');
 		return {
 			skill,
+			projectRepository: revision.source
+				? null
+				: validatePackage([
+						{
+							path: 'SKILL.md',
+							data: path === 'SKILL.md' ? buffer : readPackageFile(revision, 'SKILL.md'),
+							mode: 0o644
+						}
+					]).projectRepository,
 			revision,
 			history: revisions(skill.id).map(({ number, createdAt, version }) => ({
 				number,
