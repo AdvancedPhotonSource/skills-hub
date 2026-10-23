@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import {
 		Braces,
 		ArrowUpRight,
@@ -13,6 +14,10 @@
 	} from '@lucide/svelte';
 	import CodeBlock from '$lib/components/CodeBlock.svelte';
 	let { data } = $props();
+	let ready = $state(false);
+	onMount(() => {
+		ready = true;
+	});
 	const root = $derived(new URL(`${base}/`, page.url).href.replace(/\/$/, ''));
 	const languages = ['cURL', 'JavaScript', 'Python'] as const;
 	let language = $state<(typeof languages)[number]>('cURL');
@@ -321,7 +326,7 @@
 				>
 					<div class="request-fields">
 						<label
-							>Endpoint<select bind:value={endpoint}
+							>Endpoint<select bind:value={endpoint} disabled={!ready}
 								><option value="search">Search skills</option><option value="detail"
 									>Skill details</option
 								><option value="categories">Categories</option></select
@@ -329,12 +334,14 @@
 						>
 						{#if endpoint === 'search'}<label
 								>Search query <span>(optional)</span><input
+									disabled={!ready}
 									bind:value={query}
 									placeholder="Try GSAS or browser"
 									maxlength="200"
 								/></label
 							>{:else if endpoint === 'detail'}<label
 								>Skill ID<input
+									disabled={!ready}
 									bind:value={skillId}
 									placeholder={data.exampleId || 'Paste an ID from search'}
 									required={!data.exampleId}
@@ -344,7 +351,7 @@
 					<div class="request-bar">
 						<span class="method">GET</span><code>{requestPath}</code><button
 							class="button primary small"
-							disabled={loading || (endpoint === 'detail' && !selectedId)}
+							disabled={!ready || loading || (endpoint === 'detail' && !selectedId)}
 							><Play size={14} />{loading ? 'Loading…' : 'Run request'}</button
 						>
 					</div>
@@ -352,6 +359,7 @@
 				<div class="language-picker" role="group" aria-label="Example language">
 					{#each languages as option}<button
 							aria-pressed={language === option}
+							disabled={!ready}
 							onclick={() => (language = option)}>{option}</button
 						>{/each}
 				</div>
