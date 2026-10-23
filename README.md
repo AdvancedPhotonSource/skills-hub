@@ -90,7 +90,7 @@ The deployment configuration in `deploy/` targets **https://arecibo.xray.aps.anl
 
 - Node.js **24.22.1** serves the application on `127.0.0.1:19005`.
 - Caddy **2.11.7** terminates HTTPS on port 9005 using the existing JMD InCommon certificate and key under `~/.jmd/tls/`. The certificate covers `arecibo.xray.aps.anl.gov`; the reviewed certificate expires January 9, 2027.
-- `deploy/Caddyfile` restricts every route to loopback, `10.0.0.0/8`, and `164.54.0.0/16`, matching the approved CAI network policy. It checks the socket peer address, not a client-supplied forwarded header. Caddy overwrites `X-Forwarded-For`; only its loopback backend can reach Node, which trusts one proxy hop for authentication throttling.
+- `deploy/Caddyfile` restricts every route to loopback, `10.0.0.0/8`, `164.54.0.0/16`, and `130.202.0.0/16`. The latter is [registered to Argonne](https://rdap.arin.net/registry/ip/130.202.0.0) and includes observed APS VPN clients (`anlvpn*.aps.anl.gov`); it was missing from the original CAI-derived allowlist. The proxy checks the socket peer address, not a client-supplied forwarded header. Caddy overwrites `X-Forwarded-For`; only its loopback backend can reach Node, which trusts one proxy hop for authentication throttling.
 - Runtime binaries, releases, the database, and immutable packages live on local XFS under `/local/haskels/skills-hub`. The user's home is NFS and holds service definitions, the existing certificate, and backups. SQLite's live database must remain on local storage.
 
 Layout:
