@@ -37,6 +37,7 @@ const domains = [
 		'agents',
 		'AI & agents',
 		[
+			['machine-learning', 'Machine learning'],
 			['skill-authoring', 'Skill authoring'],
 			['agent-workflows', 'Agent workflows'],
 			['mcp', 'MCP integrations']

@@ -90,7 +90,7 @@ export const starterCatalog: {
 			},
 			{
 				name: 'scikit-learn',
-				categories: ['exploration', 'statistics'],
+				categories: ['machine-learning', 'exploration', 'statistics'],
 				tags: ['python', 'scikit-learn'],
 				role: 'Researcher',
 				example:
@@ -111,6 +111,106 @@ export const starterCatalog: {
 				role: 'Researcher',
 				example:
 					'Profile this large tabular HDF5 dataset with Vaex: inspect column types, apply a quality filter, and compute grouped statistics without materializing the whole table.'
+			}
+		]
+	},
+	{
+		repository: 'affaan-m/ECC',
+		commit: '25278e7d7b6cf6e6a4e7a6c8e10f14ff22f0eb5b',
+		ref: 'main',
+		license: 'MIT (repository LICENSE; retained in each package)',
+		skills: [
+			{
+				name: 'docker-patterns',
+				directory: '.kiro/skills/docker-patterns',
+				categories: ['deployment'],
+				tags: ['docker', 'compose', 'containers'],
+				role: 'Software engineer',
+				example:
+					'Containerize our beamline analysis API for local development with Docker Compose. Separate persistent data from the image, bind development ports to localhost, and add a health check and reproducible build.'
+			},
+			{
+				name: 'deployment-patterns',
+				directory: '.kiro/skills/deployment-patterns',
+				categories: ['deployment'],
+				tags: ['ci-cd', 'docker', 'github-actions', 'rollback'],
+				role: 'Software engineer',
+				example:
+					'Design a release pipeline for an internal APS service with automated checks, a health probe, immutable artifacts, and rollback. Account for persistent data and database migration compatibility.'
+			}
+		]
+	},
+	{
+		repository: 'uw-ssec/rse-plugins',
+		commit: 'bf9da803e9ec9ac11f4ecd2424114774da658c1d',
+		ref: 'main',
+		license: 'BSD-3-Clause (repository and containerization plugin LICENSE files retained)',
+		skills: [
+			{
+				name: 'singularity-apptainer',
+				directory: 'plugins/containerization/skills/singularity-apptainer',
+				categories: ['hpc', 'deployment'],
+				tags: ['apptainer', 'singularity', 'slurm', 'mpi'],
+				role: 'Researcher',
+				example:
+					'Package our diffraction analysis environment as an Apptainer image and prepare a Slurm script using this cluster’s documented partition and account. Include data mounts and a small MPI or GPU validation step before scaling.'
+			},
+			{
+				name: 'gpu-containers',
+				directory: 'plugins/containerization/skills/gpu-containers',
+				categories: ['deployment', 'hpc', 'machine-learning'],
+				tags: ['gpu', 'cuda', 'rocm', 'docker', 'pytorch'],
+				role: 'Software engineer',
+				example:
+					'Prepare a GPU container for our PyTorch image-reconstruction model. Check the installed driver and allocated devices, select a compatible image, and verify framework GPU visibility before training.'
+			}
+		]
+	},
+	{
+		repository: 'scimate-ai/hpc-skills',
+		commit: '4ea8069188d931875121cdd418d7a26e60f47152',
+		ref: 'main',
+		license: 'MIT (repository LICENSE; retained in the package)',
+		skills: [
+			{
+				name: 'hpc-orchestration',
+				categories: ['hpc'],
+				tags: ['slurm', 'pbs', 'lsf', 'mpi', 'batch-jobs'],
+				role: 'Researcher',
+				example:
+					'Prepare a bounded job array to process these detector datasets on our cluster. Use the actual scheduler, allocation, and scratch policy; estimate resources from a pilot, stage inputs, and collect exit status and output checksums.'
+			}
+		]
+	},
+	{
+		repository: 'K-Dense-AI/scientific-agent-skills',
+		commit: '5f2bc0341354fd5590aef76a533ada1e1e5b4e62',
+		ref: 'main',
+		license: 'MIT (repository LICENSE.md; individual declarations retained)',
+		skills: [
+			{
+				name: 'pytorch-lightning',
+				categories: ['machine-learning', 'hpc'],
+				tags: ['python', 'pytorch', 'lightning', 'deep-learning', 'gpu'],
+				role: 'Researcher',
+				example:
+					'Organize training of our detector-image classifier with Lightning. Split by specimen before preprocessing, start with a small single-device run, log metrics locally, and preserve checkpoints before considering distributed training.'
+			},
+			{
+				name: 'shap',
+				categories: ['machine-learning', 'statistics'],
+				tags: ['python', 'shap', 'explainability', 'feature-importance'],
+				role: 'Researcher',
+				example:
+					'Explain predictions from our fitted spectral classifier on held-out samples using SHAP. State the output class and background population, check additivity, and distinguish feature attribution from physical causation.'
+			},
+			{
+				name: 'umap-learn',
+				categories: ['machine-learning', 'exploration', 'visualization'],
+				tags: ['python', 'umap', 'dimensionality-reduction', 'clustering'],
+				role: 'Researcher',
+				example:
+					'Explore these high-dimensional XRF spectra with UMAP and a PCA baseline. Choose a scientifically meaningful scaling and metric, compare seeds and neighborhoods, and check apparent clusters in the original spectra.'
 			}
 		]
 	},

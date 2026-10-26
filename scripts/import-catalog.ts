@@ -50,7 +50,14 @@ try {
 					existing.source.directory !== directory)
 			)
 				throw new Error(`Conflicting source for ${entry.name}; inspect it before proceeding.`);
-			if (existing?.source?.commit === source.commit) {
+			const meta = metadata(entry);
+			if (
+				existing?.source?.commit === source.commit &&
+				JSON.stringify(existing.categories) === JSON.stringify(meta.categories) &&
+				JSON.stringify(existing.tags) === JSON.stringify(meta.tags) &&
+				existing.role === meta.role &&
+				existing.example === meta.example
+			) {
 				console.log(`Already imported: ${entry.name}`);
 				continue;
 			}
@@ -63,7 +70,7 @@ try {
 			const skillId = publish(
 				owner,
 				pkg,
-				metadata(entry),
+				meta,
 				existing ? { id: existing.id, expected: existing.revision } : undefined
 			);
 			console.log(`Imported ${entry.name}: ${pkg.files.length} files → /skills/${skillId}`);
