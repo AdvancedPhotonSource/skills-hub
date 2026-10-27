@@ -1,4 +1,32 @@
-export type User = { id: string; username: string; displayName: string; isAdmin: boolean };
+export type User = {
+	id: string;
+	username: string;
+	displayName: string;
+	isAdmin: boolean;
+	verified: boolean;
+};
+export type Mcp = {
+	repository: string;
+	documentation: string;
+	deployment: 'hosted' | 'self-hosted' | 'both' | 'unknown';
+	access: 'public' | 'internal' | 'restricted' | 'unknown';
+	transport: 'http' | 'stdio' | 'sse' | 'unknown';
+	endpoint: string;
+	authentication: string;
+	configuration: string;
+	instructions: string;
+	tools: string;
+};
+export type CatalogDetails = {
+	applicationType: 'skill' | 'mcp';
+	contexts: string[];
+	techniques: string[];
+	provenance: 'argonne' | 'external' | 'adapted';
+	sourceUrl: string;
+	upstreamAuthor: string;
+	relevance: string;
+	mcp: Mcp | null;
+};
 export type Category = { id: string; name: string; parent: string | null; count?: number };
 export type ImportSource = {
 	repository: string;
@@ -9,13 +37,16 @@ export type ImportSource = {
 	author: string;
 	licenses: { path: string; repositoryPath: string }[];
 };
-export type Skill = {
+export type Skill = CatalogDetails & {
 	id: string;
 	name: string;
 	description: string;
 	ownerId: string;
 	username: string;
 	displayName: string;
+	maintainerId: string;
+	maintainerName: string;
+	maintainerUsername: string;
 	categories: string[];
 	tags: string[];
 	role: string;
@@ -29,6 +60,7 @@ export type Skill = {
 	example: string;
 };
 export type Revision = {
+	details: CatalogDetails;
 	id: string;
 	number: number;
 	createdAt: string;

@@ -58,3 +58,18 @@ if ((db.pragma('user_version', { simple: true }) as number) < 2) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 3) {
+	db.transaction(() => {
+		db.exec(`
+			ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0;
+			ALTER TABLE users ADD COLUMN default_maintainer INTEGER NOT NULL DEFAULT 0;
+			CREATE UNIQUE INDEX default_maintainer ON users(default_maintainer) WHERE default_maintainer = 1;
+			ALTER TABLE skills ADD COLUMN maintainer_id TEXT REFERENCES users(id);
+			ALTER TABLE skills ADD COLUMN details TEXT NOT NULL DEFAULT '{}';
+			ALTER TABLE revisions ADD COLUMN details TEXT NOT NULL DEFAULT '{}';
+			UPDATE skills SET maintainer_id = owner_id;
+			PRAGMA user_version = 3;
+		`);
+	})();
+}

@@ -6,20 +6,29 @@ import { db, dataDir } from './db';
 import { categories, roles } from '../taxonomy';
 import { HubError } from './errors';
 import { sha256, type SkillPackage } from './packages';
-import type { Skill, Revision, User } from '../types';
+import type { Skill, Revision, User, CatalogDetails } from '../types';
+import { requirePublisher } from './auth';
+import { detailsFromForm, readDetails, validateDetails } from './details';
 
-type SkillRow = Omit<Skill, 'categories' | 'tags' | 'archived' | 'source'> & {
+type SkillRow = Omit<
+	Skill,
+	keyof CatalogDetails | 'categories' | 'tags' | 'archived' | 'source'
+> & {
 	categories: string;
 	tags: string;
 	archived: number;
 	source: string | null;
+	details: string;
 };
 const select = `SELECT s.id, s.owner_id AS ownerId, s.name, s.description, s.categories, s.tags, s.role,
   s.license, s.compatibility, s.updated_at AS updatedAt, s.revision, s.downloads, s.archived,
-  s.example, r.source, u.username, u.display_name AS displayName FROM skills s JOIN users u ON u.id = s.owner_id
+  s.example, s.details, s.maintainer_id AS maintainerId, m.display_name AS maintainerName,
+  m.username AS maintainerUsername, r.source, u.username, u.display_name AS displayName FROM skills s JOIN users u ON u.id = s.owner_id
+  JOIN users m ON m.id = s.maintainer_id
   JOIN revisions r ON r.skill_id = s.id AND r.number = s.revision`;
-const toSkill = (row: SkillRow): Skill => ({
+const toSkill = ({ details, ...row }: SkillRow): Skill => ({
 	...row,
+	...readDetails(details),
 	categories: JSON.parse(row.categories),
 	tags: JSON.parse(row.tags),
 	archived: Boolean(row.archived),
@@ -28,7 +37,10 @@ const toSkill = (row: SkillRow): Skill => ({
 
 export function getSkill(id: string, owner?: User | null) {
 	const row = db.prepare(`${select} WHERE s.id = ?`).get(id) as SkillRow | undefined;
-	if (!row || (row.archived && row.ownerId !== owner?.id && !owner?.isAdmin))
+	if (
+		!row ||
+		(row.archived && row.ownerId !== owner?.id && row.maintainerId !== owner?.id && !owner?.isAdmin)
+	)
 		throw new HubError('Skill not found.', 404);
 	return toSkill(row);
 }
@@ -36,7 +48,7 @@ export function getSkill(id: string, owner?: User | null) {
 export function requireOwner(id: string, user: User | null) {
 	if (!user) throw new HubError('Sign in to manage this skill.', 401);
 	const skill = getSkill(id, user);
-	if (skill.ownerId !== user.id && !user.isAdmin)
+	if (skill.ownerId !== user.id && skill.maintainerId !== user.id && !user.isAdmin)
 		throw new HubError('Only the owner can modify this skill.', 403);
 	return skill;
 }
@@ -53,8 +65,26 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 	const exact = params.get('exact') === '1';
 	const page = Math.max(1, Math.min(100000, Number(params.get('page')) || 1)) | 0;
 	const limit = 20;
-	const where = [owner ? 's.owner_id = ?' : 's.archived = 0'];
-	const values: (string | number)[] = owner ? [owner.id] : [];
+	const where = [owner ? '(s.owner_id = ? OR s.maintainer_id = ?)' : 's.archived = 0'];
+	const values: (string | number)[] = owner ? [owner.id, owner.id] : [];
+	for (const key of ['applicationType', 'provenance'] as const) {
+		const value = params.get(key === 'applicationType' ? 'type' : key);
+		if (value) {
+			where.push(
+				`COALESCE(json_extract(s.details, '$.${key}'), '${key === 'applicationType' ? 'skill' : 'argonne'}') = ?`
+			);
+			values.push(value);
+		}
+	}
+	for (const [key, field] of [
+		['context', 'contexts'],
+		['technique', 'techniques']
+	]) {
+		if (params.get(key)) {
+			where.push(`EXISTS (SELECT 1 FROM json_each(s.details, '$.${field}') WHERE value = ?)`);
+			values.push(params.get(key)!.toLowerCase());
+		}
+	}
 	if (query) {
 		if (exact) {
 			where.push('s.name = ?');
@@ -85,8 +115,10 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 		values.push(tag);
 	}
 	if (author) {
-		where.push("(u.username = ? OR json_extract(r.source, '$.author') = ? COLLATE NOCASE)");
-		values.push(author, author);
+		where.push(
+			"(u.username = ? OR s.maintainer_id IN (SELECT id FROM users WHERE username = ?) OR json_extract(r.source, '$.author') = ? COLLATE NOCASE)"
+		);
+		values.push(author, author, author);
 	}
 	if (repository) {
 		where.push("json_extract(r.source, '$.repository') = ? COLLATE NOCASE");
@@ -142,12 +174,17 @@ export function revisions(id: string): Revision[] {
 	return (
 		db
 			.prepare(
-				`SELECT id, number, created_at AS createdAt, checksum, version, name, description, license, compatibility, files, source FROM revisions WHERE skill_id = ? ORDER BY number DESC`
+				`SELECT id, number, created_at AS createdAt, checksum, version, name, description, license, compatibility, files, source, details FROM revisions WHERE skill_id = ? ORDER BY number DESC`
 			)
-			.all(id) as (Omit<Revision, 'files' | 'source'> & { files: string; source: string | null })[]
+			.all(id) as (Omit<Revision, 'files' | 'source' | 'details'> & {
+			files: string;
+			source: string | null;
+			details: string;
+		})[]
 	).map((r) => ({
 		...r,
 		files: JSON.parse(r.files),
+		details: readDetails(r.details),
 		source: r.source ? JSON.parse(r.source) : null
 	}));
 }
@@ -163,7 +200,7 @@ export function readPackageFile(revision: Revision, path: string) {
 	return readFileSync(join(dataDir, 'packages', revision.id, path));
 }
 
-export type Classification = {
+export type Classification = Partial<CatalogDetails> & {
 	categories: string[];
 	tags: string[];
 	role: string;
@@ -191,7 +228,13 @@ export function classification(form: FormData): Classification {
 	if (role && !roles.includes(role)) throw new HubError('Choose an available role.');
 	const example = String(form.get('example') || '').trim();
 	if (example.length > 1000) throw new HubError('Keep the example prompt under 1,000 characters.');
-	return { categories: selected, tags, role, example };
+	return {
+		categories: selected,
+		tags: tags.filter((t) => !['skill', 'mcp'].includes(t)),
+		role,
+		example,
+		...detailsFromForm(form)
+	};
 }
 
 export function publish(
@@ -201,6 +244,24 @@ export function publish(
 	update?: { id: string; expected: number }
 ) {
 	const existing = update ? requireOwner(update.id, user) : null;
+	requirePublisher(user);
+	const details = validateDetails({
+		...meta,
+		provenance:
+			meta.provenance ||
+			(pkg.source && !pkg.source.repository.startsWith('AdvancedPhotonSource/')
+				? 'external'
+				: 'argonne'),
+		sourceUrl: meta.sourceUrl || (pkg.source ? `https://github.com/${pkg.source.repository}` : ''),
+		upstreamAuthor: meta.upstreamAuthor || pkg.source?.author || ''
+	});
+	if (
+		details.provenance !== 'argonne' &&
+		(!details.sourceUrl || !details.upstreamAuthor || !details.relevance)
+	)
+		throw new HubError('External contributions need an author, source URL, and APS use case.');
+	const maintainer = db.prepare('SELECT id FROM users WHERE default_maintainer = 1').get() as
+		{ id: string } | undefined;
 	if (existing && existing.name !== pkg.name)
 		throw new HubError('Keep the existing skill name when publishing a revision.');
 	const id = existing?.id || randomUUID();
@@ -252,7 +313,7 @@ export function publish(
 						409
 					);
 				db.prepare(
-					`INSERT INTO skills (id, owner_id, name, description, categories, tags, role, license, compatibility, updated_at, example) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+					`INSERT INTO skills (id, owner_id, name, description, categories, tags, role, license, compatibility, updated_at, example, maintainer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 				).run(
 					id,
 					user.id,
@@ -264,11 +325,13 @@ export function publish(
 					pkg.license,
 					pkg.compatibility,
 					now,
-					meta.example || ''
+					meta.example || '',
+					maintainer?.id || user.id
 				);
 			}
+			db.prepare('UPDATE skills SET details=? WHERE id=?').run(JSON.stringify(details), id);
 			db.prepare(
-				'INSERT INTO revisions (id, skill_id, number, created_at, checksum, version, name, description, license, compatibility, files, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+				'INSERT INTO revisions (id, skill_id, number, created_at, checksum, version, name, description, license, compatibility, files, source, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
 			).run(
 				revisionId,
 				id,
@@ -281,12 +344,23 @@ export function publish(
 				pkg.license,
 				pkg.compatibility,
 				JSON.stringify(files),
-				pkg.source ? JSON.stringify(pkg.source) : null
+				pkg.source ? JSON.stringify(pkg.source) : null,
+				JSON.stringify(details)
 			);
 			db.prepare('DELETE FROM skill_search WHERE skill_id=?').run(id);
 			db.prepare(
 				'INSERT INTO skill_search (skill_id, name, description, tags, content) VALUES (?, ?, ?, ?, ?)'
-			).run(id, pkg.name, pkg.description, meta.tags.join(' '), pkg.content);
+			).run(
+				id,
+				pkg.name,
+				pkg.description,
+				[...meta.tags, ...details.contexts, ...details.techniques, details.applicationType].join(
+					' '
+				),
+				[pkg.content, details.relevance, details.mcp?.tools, details.mcp?.instructions]
+					.filter(Boolean)
+					.join('\n')
+			);
 		})();
 	} catch (error) {
 		rmSync(folder, { recursive: true, force: true });
@@ -295,12 +369,19 @@ export function publish(
 	return id;
 }
 
-export function setArchived(id: string, user: User | null, archived: boolean, expected: number) {
-	requireOwner(id, user);
-	const result = db
-		.prepare('UPDATE skills SET archived=? WHERE id=? AND revision=?')
-		.run(Number(archived), id, expected);
-	if (!result.changes) throw new HubError('This skill changed. Reload before archiving.', 409);
+export function deleteEntry(id: string, user: User, expected: number) {
+	const history = db.transaction(() => {
+		const entry = requireOwner(id, user);
+		if (entry.revision !== expected)
+			throw new HubError('This entry changed. Reload before deleting.', 409);
+		const history = revisions(id);
+		db.prepare('DELETE FROM skill_search WHERE skill_id=?').run(id);
+		db.prepare('DELETE FROM revisions WHERE skill_id=?').run(id);
+		db.prepare('DELETE FROM skills WHERE id=? AND revision=?').run(id, expected);
+		return history;
+	})();
+	for (const revision of history)
+		rmSync(join(dataDir, 'packages', revision.id), { recursive: true, force: true });
 }
 
 export function download(skill: Skill, revision: Revision) {

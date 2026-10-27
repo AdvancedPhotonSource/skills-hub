@@ -11,8 +11,8 @@
 		<div class="eyebrow"><Layers size={16} /> Explore by discipline</div>
 		<h1>Expertise across the laboratory.</h1>
 		<p>
-			Start with your field, or find a useful approach in another. A skill can belong to more than
-			one category.
+			Find skills and MCPs by workflow. Filter by facility, beamline, or scientific technique on
+			Explore.
 		</p>
 	</div>
 	<div class="category-grid">
@@ -24,7 +24,7 @@
 					<a href={`${base}/?category=${domain.id}`}
 						><h2>{domain.name}</h2>
 						<ArrowUpRight size={17} /></a
-					><span>{domain.count} {domain.count === 1 ? 'skill' : 'skills'}</span>
+					><span>{domain.count} {domain.count === 1 ? 'entry' : 'entries'}</span>
 				</div>
 				<ul>
 					{#each data.taxonomy.filter((c) => c.parent === domain.id) as category}<li>

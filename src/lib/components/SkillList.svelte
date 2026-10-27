@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { FileText, ArrowUpRight, Download } from '@lucide/svelte';
-	import { categoryName, categoryTone } from '$lib/taxonomy';
+	import { FileText, Plug, ArrowUpRight, Download } from '@lucide/svelte';
+	import { categoryName, categoryTone, provenanceName } from '$lib/taxonomy';
 	import type { Skill } from '$lib/types';
 	let { skills }: { skills: Skill[] } = $props();
 </script>
@@ -10,21 +10,24 @@
 	{#each skills as skill}
 		<article class="skill-row">
 			<div class="skill-icon tone" data-tone={categoryTone(skill.categories[0])}>
-				<FileText size={19} strokeWidth={1.6} />
+				{#if skill.applicationType === 'mcp'}<Plug size={19} strokeWidth={1.6} />{:else}<FileText
+						size={19}
+						strokeWidth={1.6}
+					/>{/if}
 			</div>
 			<div class="skill-body">
 				<div class="title-row">
 					<a class="skill-name" href={`${base}/skills/${skill.id}`}
 						>{skill.name}<ArrowUpRight size={15} /></a
-					>{#if skill.archived}<span class="badge">Archived</span>{/if}
+					>{#if skill.applicationType === 'mcp'}<span class="badge blue">MCP</span
+						>{/if}{#if skill.provenance !== 'argonne'}<span class="badge"
+							>{provenanceName[skill.provenance]}</span
+						>{/if}
 				</div>
 				<p>{skill.description}</p>
 				<div class="skill-meta">
-					<a
-						href={skill.source
-							? `${base}/?repository=${encodeURIComponent(skill.source.repository)}`
-							: `${base}/?author=${encodeURIComponent(skill.username)}`}
-						>{skill.source?.repository || skill.displayName}</a
+					<a href={`${base}/?author=${encodeURIComponent(skill.maintainerUsername)}`}
+						>Maintained by {skill.maintainerName}</a
 					><span class="meta-divider"></span>{#each skill.categories.slice(0, 2) as category}<a
 							class="category category-chip"
 							data-tone={categoryTone(category)}

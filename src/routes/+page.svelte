@@ -2,7 +2,8 @@
 	import { base } from '$app/paths';
 	import { Search, SlidersHorizontal, ArrowRight, Layers, X, Sparkles } from '@lucide/svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
-	import { categoryName, roles } from '$lib/taxonomy';
+	import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
+	import { categoryName, roles, techniques } from '$lib/taxonomy';
 	let { data } = $props();
 	let showFilters = $state(false);
 	const urlWith = (key: string, value: string) => {
@@ -33,8 +34,8 @@
 				{#if searching}Search the library.{:else}Find the skill for<br />your next task.{/if}
 			</h1>
 			{#if !searching}<p>
-					Reusable instructions for your AI agents.<br class="desktop-break" /> Community skills and local
-					expertise for science, code, and everyday work.
+					Skills and MCPs for your AI agents.<br class="desktop-break" /> Beamline controls, scientific
+					analysis, and APS expertise in one place.
 				</p>{/if}
 			<form class="search-box" action={`${base}/`} method="GET" role="search">
 				{#each Object.entries(data.filters).filter(([key]) => !['q', 'page'].includes(key)) as [key, value]}<input
@@ -42,16 +43,17 @@
 						name={key}
 						{value}
 					/>{/each}
-				<Search size={20} /><label class="sr-only" for="search">Search skills</label><input
+				<Search size={20} /><label class="sr-only" for="search">Search skills and MCPs</label><input
 					id="search"
 					name="q"
 					value={data.query}
-					placeholder="Search a task, tool, or skill…"
+					placeholder="Search a technique, beamline, or tool…"
 					maxlength="200"
 				/><button type="submit" aria-label="Search"><ArrowRight size={20} /></button>
 			</form>
+			<DiscoveryPanel />
 			<div class="suggestions">
-				<span>Try</span>{#each ['Python', 'visualization', 'HDF5'] as keyword}<a
+				<span>Try</span>{#each ['ptychography', 'XRF', 'HDF5'] as keyword}<a
 						href={`${base}/?q=${keyword}`}>{keyword}</a
 					>{/each}
 			</div>
@@ -68,11 +70,19 @@
 <div class="shell catalog-layout">
 	<aside id="skill-filters" class:visible={showFilters} aria-label="Skill filters">
 		<div class="filter-title">
-			<h2>Browse skills</h2>
+			<h2>Browse the hub</h2>
 			<SlidersHorizontal size={15} />
 		</div>
+		<div class="type-filter" role="group" aria-label="Application type">
+			{#each [['', 'All'], ['skill', 'Skills'], ['mcp', 'MCPs']] as [value, label]}<a
+					class="badge"
+					class:blue={(data.filters.type || '') === value}
+					aria-current={(data.filters.type || '') === value ? 'true' : undefined}
+					href={urlWith('type', value)}>{label}</a
+				>{/each}
+		</div>
 		<a class="category-link" class:selected={!data.filters.category} href={urlWith('category', '')}
-			><span>All categories</span></a
+			><span>All workflows</span></a
 		>
 		{#each data.taxonomy.filter((c) => !c.parent) as category}<a
 				class="category-link"
@@ -91,40 +101,85 @@
 				</div>{/if}
 		{/each}
 		<form method="GET" action={`${base}/`} class="secondary-filters">
-			{#each Object.entries(data.filters).filter(([key]) => !['role', 'days', 'origin', 'exact', 'page'].includes(key)) as [key, value]}<input
+			{#each Object.entries(data.filters).filter(([key]) => !['context', 'technique', 'provenance', 'role', 'days', 'origin', 'exact', 'page'].includes(key)) as [key, value]}<input
 					type="hidden"
 					name={key}
 					{value}
 				/>{/each}
 			<div class="field">
-				<label for="role">Role</label><select name="role" id="role" value={data.filters.role || ''}
-					><option value="">All roles</option>{#each roles as role}<option>{role}</option
+				<label for="context">Facility / beamline</label><input
+					id="context"
+					name="context"
+					value={data.filters.context || ''}
+					placeholder="e.g. 2-id-d"
+				/>
+			</div>
+			<div class="field">
+				<label for="technique">Scientific technique</label><select
+					id="technique"
+					name="technique"
+					value={data.filters.technique || ''}
+					><option value="">All techniques</option>{#each techniques as [value, label]}<option
+							{value}>{label}</option
 						>{/each}</select
 				>
 			</div>
-			<div class="field">
-				<label for="days">Updated</label><select
-					name="days"
-					id="days"
-					value={data.filters.days || ''}
-					><option value="">Any time</option><option value="7">Past week</option><option value="30"
-						>Past month</option
-					><option value="90">Past 90 days</option><option value="365">Past year</option></select
+			<details
+				class="more-filters"
+				open={Boolean(
+					data.filters.provenance ||
+					data.filters.role ||
+					data.filters.days ||
+					data.filters.origin ||
+					data.filters.exact
+				)}
+			>
+				<summary>More filters</summary>
+				<div class="field">
+					<label for="provenance">Authorship</label><select
+						id="provenance"
+						name="provenance"
+						value={data.filters.provenance || ''}
+						><option value="">All authorship</option><option value="argonne"
+							>Argonne-authored</option
+						><option value="external">External</option><option value="adapted">Adapted</option
+						></select
+					>
+				</div>
+				<div class="field">
+					<label for="role">Role</label><select
+						name="role"
+						id="role"
+						value={data.filters.role || ''}
+						><option value="">All roles</option>{#each roles as role}<option>{role}</option
+							>{/each}</select
+					>
+				</div>
+				<div class="field">
+					<label for="days">Updated</label><select
+						name="days"
+						id="days"
+						value={data.filters.days || ''}
+						><option value="">Any time</option><option value="7">Past week</option><option
+							value="30">Past month</option
+						><option value="90">Past 90 days</option><option value="365">Past year</option></select
+					>
+				</div>
+				<div class="field">
+					<label for="origin">Source</label><select
+						id="origin"
+						name="origin"
+						value={data.filters.origin || ''}
+						><option value="">All sources</option><option value="imported">GitHub imports</option
+						><option value="uploaded">Local uploads</option></select
+					>
+				</div>
+				<label class="check-label"
+					><input type="checkbox" name="exact" value="1" checked={data.filters.exact === '1'} /> Exact
+					skill name</label
 				>
-			</div>
-			<div class="field">
-				<label for="origin">Source</label><select
-					id="origin"
-					name="origin"
-					value={data.filters.origin || ''}
-					><option value="">All sources</option><option value="imported">GitHub imports</option
-					><option value="uploaded">Local uploads</option></select
-				>
-			</div>
-			<label class="check-label"
-				><input type="checkbox" name="exact" value="1" checked={data.filters.exact === '1'} /> Exact skill
-				name</label
-			><button class="button small" type="submit">Apply filters</button>
+			</details>
+			<button class="button small" type="submit">Apply filters</button>
 		</form>
 		<div class="contribute">
 			<Sparkles size={17} />
@@ -144,12 +199,12 @@
 							: data.filters.repository
 								? data.filters.repository
 								: data.filters.author
-									? `Skills by ${data.filters.author}`
+									? `Contributions by ${data.filters.author}`
 									: 'Explore the library'}
 				</h2>
 				<p>
 					{data.total}
-					{data.total === 1 ? 'skill' : 'skills'}{data.query || activeFilters.length
+					{data.total === 1 ? 'entry' : 'entries'}{data.query || activeFilters.length
 						? ' found'
 						: ' to build on'}
 				</p>
@@ -226,6 +281,20 @@
 </div>
 
 <style>
+	.type-filter {
+		display: flex;
+		gap: 8px;
+		margin-bottom: 20px;
+	}
+	.more-filters {
+		margin-bottom: 16px;
+	}
+	.more-filters summary {
+		cursor: pointer;
+		font-size: 12px;
+		margin-bottom: 16px;
+		color: var(--muted);
+	}
 	.hero {
 		background: linear-gradient(110deg, #f7faff 0%, #f9fbfe 65%, #f0f5fd 100%);
 		border-bottom: 1px solid var(--line);

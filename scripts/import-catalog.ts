@@ -1,46 +1,38 @@
 import { db } from '../src/lib/server/db';
 import { userById } from '../src/lib/server/auth';
-import {
-	classification,
-	getSkill,
-	publish,
-	revisionFor,
-	setArchived
-} from '../src/lib/server/catalog';
+import { classification, getSkill, publish, revisionFor } from '../src/lib/server/catalog';
 import { inspectRepository, importDirectory } from '../src/lib/server/github';
 import { validatePackage, sha256 } from '../src/lib/server/packages';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { starterCatalog, localSkills, type CatalogSkill } from './catalog';
+import { starterCatalog, localSkills, catalogMetadata, type CatalogSkill } from './catalog';
 
-function metadata(entry: CatalogSkill) {
+function metadata(entry: CatalogSkill, repository?: string) {
 	const form = new FormData();
 	entry.categories.forEach((category) => form.append('category', category));
 	form.set('tags', entry.tags.join(','));
 	form.set('role', entry.role);
 	form.set('example', entry.example || '');
-	return classification(form);
+	return { ...classification(form), ...catalogMetadata(entry, repository) };
 }
 
 const args = process.argv.slice(2);
-if (args.some((arg) => arg !== '--archive-examples'))
-	throw new Error('Usage: npm run import:catalog -- [--archive-examples]');
+if (args.some((arg) => arg !== '--local-only'))
+	throw new Error('Usage: npm run import:catalog -- [--local-only]');
 
 try {
-	const id = 'aps-curated-library';
-	db.prepare('INSERT OR IGNORE INTO users (id, username, display_name) VALUES (?, ?, ?)').run(
-		id,
-		'curated',
-		'APS curated library'
-	);
-	const owner = userById(id);
-	if (!owner) throw new Error('The curated username is already in use. No account was changed.');
-	for (const source of starterCatalog) {
+	const account = db.prepare('SELECT id FROM users WHERE default_maintainer=1').get() as
+		{ id: string } | undefined;
+	const owner = account ? userById(account.id) : null;
+	if (!owner?.verified) throw new Error('Run npm run curate -- <maintainer username> first.');
+	for (const source of args.includes('--local-only') ? [] : starterCatalog) {
 		let snapshot;
 		for (const entry of source.skills) {
 			const row = db
-				.prepare('SELECT id FROM skills WHERE owner_id=? AND name=?')
+				.prepare(
+					"SELECT id FROM skills WHERE (owner_id=? OR owner_id='aps-curated-library') AND name=?"
+				)
 				.get(owner.id, entry.name) as { id: string } | undefined;
 			const existing = row ? getSkill(row.id, owner) : null;
 			const directory = entry.directory || `skills/${entry.name}`;
@@ -50,13 +42,18 @@ try {
 					existing.source.directory !== directory)
 			)
 				throw new Error(`Conflicting source for ${entry.name}; inspect it before proceeding.`);
-			const meta = metadata(entry);
+			const meta = metadata(entry, source.repository);
 			if (
 				existing?.source?.commit === source.commit &&
 				JSON.stringify(existing.categories) === JSON.stringify(meta.categories) &&
 				JSON.stringify(existing.tags) === JSON.stringify(meta.tags) &&
 				existing.role === meta.role &&
-				existing.example === meta.example
+				existing.example === meta.example &&
+				Object.entries(catalogMetadata(entry, source.repository)).every(
+					([key, value]) =>
+						['name', 'directory'].includes(key) ||
+						JSON.stringify(existing[key as keyof typeof existing]) === JSON.stringify(value)
+				)
 			) {
 				console.log(`Already imported: ${entry.name}`);
 				continue;
@@ -92,7 +89,9 @@ try {
 		const pkg = validatePackage(files);
 		if (pkg.name !== entry.name) throw new Error(`Unexpected local skill name: ${entry.name}`);
 		const row = db
-			.prepare('SELECT id FROM skills WHERE owner_id=? AND name=?')
+			.prepare(
+				"SELECT id FROM skills WHERE (owner_id=? OR owner_id='aps-curated-library') AND name=?"
+			)
 			.get(owner.id, entry.name) as { id: string } | undefined;
 		const existing = row ? getSkill(row.id, owner) : null;
 		if (existing?.source)
@@ -114,7 +113,12 @@ try {
 			JSON.stringify(existing.categories) === JSON.stringify(meta.categories) &&
 			JSON.stringify(existing.tags) === JSON.stringify(meta.tags) &&
 			existing.role === meta.role &&
-			existing.example === meta.example
+			existing.example === meta.example &&
+			Object.entries(catalogMetadata(entry)).every(
+				([key, value]) =>
+					['name', 'directory'].includes(key) ||
+					JSON.stringify(existing[key as keyof typeof existing]) === JSON.stringify(value)
+			)
 		) {
 			console.log(`Already published: ${entry.name}`);
 			continue;
@@ -126,16 +130,6 @@ try {
 			existing ? { id: existing.id, expected: existing.revision } : undefined
 		);
 		console.log(`Published ${entry.name}: ${pkg.files.length} files → /skills/${skillId}`);
-	}
-	if (args.includes('--archive-examples')) {
-		const examples = userById('aps-example-library');
-		if (examples) {
-			const rows = db
-				.prepare('SELECT id, revision FROM skills WHERE owner_id=? AND archived=0')
-				.all(examples.id) as { id: string; revision: number }[];
-			for (const row of rows) setArchived(row.id, examples, true, row.revision);
-			console.log(`Archived ${rows.length} demo entries.`);
-		}
 	}
 } finally {
 	db.close();

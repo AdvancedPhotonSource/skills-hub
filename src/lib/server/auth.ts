@@ -12,10 +12,16 @@ export const sessionLifetime = 60 * 60 * 24 * 7;
 export function userById(id: string): User | null {
 	const row = db
 		.prepare(
-			'SELECT id, username, display_name AS displayName, is_admin AS isAdmin FROM users WHERE id = ?'
+			'SELECT id, username, display_name AS displayName, is_admin AS isAdmin, verified FROM users WHERE id = ?'
 		)
 		.get(id) as User | undefined;
-	return row ? { ...row, isAdmin: Boolean(row.isAdmin) } : null;
+	return row ? { ...row, isAdmin: Boolean(row.isAdmin), verified: Boolean(row.verified) } : null;
+}
+
+export function requirePublisher(user: User) {
+	const current = userById(user.id);
+	if (!current?.verified)
+		throw new HubError('Ask Samuel Haskel to verify your account before publishing.', 403);
 }
 
 export function checkPassword(password: string) {

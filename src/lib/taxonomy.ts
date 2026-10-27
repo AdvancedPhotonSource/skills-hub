@@ -93,14 +93,29 @@ export const roles = [
 	'Controls engineer',
 	'System administrator'
 ];
+
+export const techniques = [
+	['xrf', 'X-ray fluorescence'],
+	['ptychography', 'Ptychography'],
+	['tomography', 'Tomography'],
+	['saxs', 'Small-angle X-ray scattering (SAXS)'],
+	['diffraction', 'X-ray diffraction'],
+	['laue', 'Laue diffraction'],
+	['spectroscopy', 'X-ray spectroscopy']
+] as const;
+export const techniqueName = (id: string) => techniques.find(([key]) => key === id)?.[1] ?? id;
+export const provenanceName = {
+	argonne: 'Argonne-authored',
+	external: 'External',
+	adapted: 'Adapted from external work'
+};
 export const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
 export function categoryTone(id?: string) {
 	const category = categories.find((entry) => entry.id === id);
 	const domain = category?.parent || id;
-	if (['science', 'research'].includes(domain || '')) return 'teal';
-	if (['agents', 'computing'].includes(domain || '')) return 'violet';
-	if (['beamline', 'controls'].includes(domain || '')) return 'amber';
-	if (domain === 'productivity') return 'rose';
+	if (['science', 'research'].includes(domain || '')) return 'green';
+	if (['agents', 'computing'].includes(domain || '')) return 'navy';
+	if (domain === 'productivity') return 'red';
 	return 'blue';
 }

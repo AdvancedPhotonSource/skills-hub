@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { unzipSync, zipSync } from 'fflate';
 import AxeBuilder from '@axe-core/playwright';
+import Database from 'better-sqlite3';
+import { join } from 'node:path';
+
+function verify(username: string) {
+	const db = new Database(join(process.env.E2E_DATA_DIR!, 'hub.sqlite'));
+	db.prepare('UPDATE users SET verified=1 WHERE username=?').run(username);
+	db.close();
+}
 
 const source =
 	'---\nname: browser-test-skill\ndescription: Explore HDF5 arrays and metadata with Python\nmetadata:\n  source-repository: https://github.com/AdvancedPhotonSource/lauelab\n---\n\n# Explore HDF5 data\n\nRead metadata before loading arrays.\n';
@@ -28,6 +36,7 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	await page.getByLabel('Password', { exact: true }).fill('a-good-long-test-passphrase');
 	await page.getByRole('button', { name: 'Create account' }).click();
 	await expect(page).toHaveURL(/\/my-skills$/);
+	verify('owner');
 	await page.goto('/upload');
 	expect(
 		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
@@ -143,19 +152,19 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 		}
 	});
 	expect(await unauthorized.json()).toMatchObject({ type: 'failure', status: 403 });
-	const archiveAttempt = await attacker.request.post(`${skillPath}/edit?/archive`, {
+	const deleteAttempt = await attacker.request.post(`${skillPath}/edit?/delete`, {
 		headers: { origin },
-		form: { archived: '1', expected: '1' }
+		form: { expected: '1' }
 	});
-	expect(await archiveAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
+	expect(await deleteAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
 	const refreshAttempt = await attacker.request.post(`${skillPath}/edit?/refresh`, {
 		headers: { origin },
 		form: { expected: '1' }
 	});
 	expect(await refreshAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
-	const csrf = await page.request.post(`${skillPath}/edit?/archive`, {
+	const csrf = await page.request.post(`${skillPath}/edit?/delete`, {
 		headers: { origin: 'https://outside.example' },
-		form: { archived: '1', expected: '1' }
+		form: { expected: '1' }
 	});
 	expect(csrf.status()).toBe(403);
 
@@ -167,8 +176,11 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	await page
 		.locator('input[type=file]')
 		.setInputFiles({ name: 'SKILL.md', mimeType: 'text/markdown', buffer: Buffer.from(updated) });
-	await page.getByRole('button', { name: 'Publish revision' }).click();
-	await expect(page.getByText('Revision 2', { exact: true }).first()).toBeVisible();
+	await page.getByRole('button', { name: 'Save changes' }).click();
+	await expect(
+		page.getByText('Read only the metadata and a small array slice.', { exact: true })
+	).toBeVisible();
+	await expect(page.getByText('Revision 2', { exact: true })).toHaveCount(0);
 	const oldVersion = await guest.request.get(`${skillPath}/download?revision=1`);
 	expect(
 		Buffer.from(
@@ -178,11 +190,12 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	await page.goto('/saved');
 	await expect(page.getByRole('link', { name: 'browser-test-skill' })).toBeVisible();
 	await page.goto(`${skillPath}/edit`);
-	await page.getByRole('button', { name: 'Archive skill', exact: true }).click();
+	await page.getByRole('button', { name: 'Delete entry', exact: true }).click();
 	await expect(page).toHaveURL(/\/my-skills$/);
 	expect((await guest.request.get(`${skillPath}/download`)).status()).toBe(404);
 	expect((await guest.request.get(`/api/v1${skillPath}`)).status()).toBe(404);
-	await expect(page.getByText('Archived', { exact: true })).toBeVisible();
+	expect((await guest.request.get(`${skillPath}/download?revision=1`)).status()).toBe(404);
+	await expect(page.getByRole('link', { name: 'browser-test-skill', exact: true })).toHaveCount(0);
 	await page.goto('/account');
 	await page.getByLabel('Current password').fill('a-good-long-test-passphrase');
 	await page.getByLabel('New password').fill('a-new-long-test-passphrase');
@@ -198,4 +211,92 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	expect(errors).toEqual([]);
 	await guest.close();
 	await attacker.close();
+});
+
+test('MCP publishing, external provenance, discovery, and type-specific display', async ({
+	page
+}) => {
+	await page.request.post('/register', {
+		headers: { origin },
+		form: {
+			username: 'mcp-owner',
+			displayName: 'MCP Owner',
+			password: 'a-long-mcp-owner-passphrase'
+		}
+	});
+	await page.goto('/upload');
+	await page.getByLabel('Application type').selectOption('mcp');
+	await page.getByLabel('Name', { exact: true }).fill('test-xrf-mcp');
+	await page.getByLabel('Description', { exact: true }).fill('Analyze XRF maps at APS 2-ID-D.');
+	await page.getByLabel('Repository', { exact: true }).fill('https://example.org/xrf-mcp');
+	await page.getByLabel('Deployment', { exact: true }).selectOption('self-hosted');
+	await page.getByLabel('Access', { exact: true }).selectOption('internal');
+	await page.getByLabel('Transport', { exact: true }).selectOption('stdio');
+	await page
+		.getByLabel('Connection / deployment instructions')
+		.fill('Install the package in your analysis environment and configure the client.');
+	await page.getByLabel('Client configuration example').fill('{"command":"xrf-mcp"}');
+	await page.locator('summary').filter({ hasText: 'Scientific data & analysis' }).click();
+	await page.getByLabel('Data reduction', { exact: true }).check();
+	await page.getByLabel('Facility / beamline').fill('aps, 2-id-d');
+	await page.getByLabel('X-ray fluorescence', { exact: true }).check();
+	await page.getByLabel('Authorship').selectOption('external');
+	await page.getByLabel('Original author / organization').fill('XRF project');
+	await page.getByLabel('Original source URL').fill('https://example.org/xrf-mcp');
+	await page.getByLabel('APS use case').fill('Analyze maps collected at APS 2-ID-D.');
+	await page.getByRole('button', { name: 'Publish MCP', exact: true }).click();
+	await expect(page.getByRole('status')).toContainText('verify your account');
+	verify('mcp-owner');
+	await page.getByRole('button', { name: 'Publish MCP', exact: true }).click();
+	await expect(page).toHaveURL(/\/skills\/[a-f0-9-]+$/);
+	const path = new URL(page.url()).pathname;
+	await expect(page.getByRole('heading', { name: 'Deploy MCP' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Use this skill' })).toHaveCount(0);
+	await expect(page.getByText('Maintained by MCP Owner', { exact: true })).toBeVisible();
+	await expect(page.getByText('Tracking ref', { exact: true })).toHaveCount(0);
+	const result = await (await page.request.get(`/api/v1${path}`)).json();
+	expect(result.skill).toMatchObject({
+		applicationType: 'mcp',
+		provenance: 'external',
+		contexts: ['aps', '2-id-d'],
+		techniques: ['xrf']
+	});
+	expect(result.revision.files.map((file: { path: string }) => file.path)).toEqual(['README.md']);
+	await page.getByRole('link', { name: 'Manage MCP', exact: true }).click();
+	await page
+		.getByLabel('Connection / deployment instructions')
+		.fill('Use the configured XRF environment and run xrf-mcp.');
+	await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+	await expect(
+		page.getByText('Use the configured XRF environment and run xrf-mcp.', { exact: true })
+	).toBeVisible();
+	expect((await (await page.request.get(`/api/v1${path}`)).json()).skill).toMatchObject({
+		revision: 2,
+		provenance: 'external',
+		mcp: { transport: 'stdio' }
+	});
+	expect(
+		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+			.violations
+	).toEqual([]);
+	await page.setViewportSize({ width: 390, height: 844 });
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+	await page.screenshot({ path: 'test-results/mcp-mobile.png', fullPage: true });
+	await page.goto('/?type=skill&technique=xrf');
+	await expect(page.getByRole('link', { name: 'test-xrf-mcp', exact: true })).toHaveCount(0);
+	await page.goto('/?type=mcp&context=2-id-d&technique=xrf');
+	await expect(page.getByRole('link', { name: 'test-xrf-mcp', exact: true })).toBeVisible();
+	await page.locator('summary').filter({ hasText: 'Find with your agent' }).click();
+	await page.getByLabel('What do you want to do?').fill('Analyze fluorescence maps.');
+	await expect(page.getByRole('region', { name: 'Discovery prompt' })).toContainText(
+		'Analyze fluorescence maps.'
+	);
+	const zip = await page.request.get('/discovery/skill.zip');
+	expect(zip.ok()).toBe(true);
+	expect(
+		Buffer.from(
+			unzipSync(new Uint8Array(await zip.body()))['aps-hub-discovery/SKILL.md']
+		).toString()
+	).toContain('name: aps-hub-discovery');
+	expect((await page.request.get('/discovery/SKILL.md')).ok()).toBe(true);
 });

@@ -8,6 +8,9 @@
 <section class="auth-page">
 	<h1>Your account</h1>
 	<p>{data.account.displayName} <span class="badge">{data.account.username}</span></p>
+	{#if !data.account.verified}<p class="notice">
+			Ask Samuel Haskel to verify your account before publishing.
+		</p>{/if}
 	<form method="POST" class="form-card" use:enhance>
 		{#if form?.message}<div class="notice error" role="alert">
 				{form.message}

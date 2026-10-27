@@ -64,7 +64,7 @@
 		<p>
 			{method === 'prompt'
 				? 'Copy this prompt into the AI assistant you’re using.'
-				: 'Run from your project directory to install this hub revision.'}
+				: 'Run from your project directory to install this skill.'}
 		</p>
 		{#if method === 'command'}<div class="runners" role="group" aria-label="Package runner">
 				{#each packageRunners as option}<button
@@ -122,7 +122,7 @@
 		background: #fff;
 		box-shadow: 0 8px 28px #20395508;
 		padding: 22px;
-		border-top: 3px solid #7859b3;
+		border-top: 3px solid var(--argonne-blue);
 	}
 	.install-heading {
 		display: flex;
@@ -136,8 +136,8 @@
 		border-radius: 11px;
 		display: grid;
 		place-items: center;
-		color: #6943a0;
-		background: #f1eafa;
+		color: var(--blue);
+		background: var(--blue-light);
 	}
 	h2 {
 		font-size: 19px;
@@ -171,7 +171,7 @@
 	}
 	.segmented button[aria-pressed='true'] {
 		background: #fff;
-		color: #56328c;
+		color: var(--blue);
 		box-shadow: 0 1px 4px #20395518;
 	}
 	.install-content {

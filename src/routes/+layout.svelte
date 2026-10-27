@@ -10,21 +10,27 @@
 <svelte:head
 	><title>APS Skills Hub</title><meta
 		name="description"
-		content="Discover and share agent skills for science, engineering, and everyday work at Argonne."
+		content="Discover skills and MCPs for beamline controls and scientific analysis at Argonne’s Advanced Photon Source."
 	/></svelte:head
 >
 <a class="skip-link" href="#main">Skip to content</a>
 <div class="institution">
 	<div class="shell">
-		<span>Advanced Photon Source</span><span>Argonne National Laboratory</span>
+		<a href="https://www.anl.gov/" aria-label="Argonne National Laboratory"
+			><img
+				class="argonne-logo"
+				src={`${base}/argonne-logo.svg`}
+				alt="Argonne National Laboratory"
+				width="220"
+				height="60"
+			/></a
+		><span>Advanced Photon Source</span>
 	</div>
 </div>
 <header class="site-header">
 	<div class="shell header-inner">
 		<a class="brand" href={`${base}/`} aria-label="APS Skills Hub home"
-			><img src={`${base}/favicon.svg`} width="36" height="36" alt="" /><span
-				>APS <strong>Skills Hub</strong></span
-			></a
+			><span>APS <strong>Skills Hub</strong></span></a
 		>
 		<button
 			class="icon-button mobile-menu"
@@ -44,10 +50,10 @@
 			{#if data.user}<a
 					class:active={page.url.pathname === `${base}/my-skills`}
 					href={`${base}/my-skills`}
-					onclick={() => (menu = false)}>My skills</a
+					onclick={() => (menu = false)}>My contributions</a
 				>{/if}
 			<a class="button primary small" href={`${base}/upload`} onclick={() => (menu = false)}
-				><Upload size={15} /> Upload skill</a
+				><Upload size={15} /> Publish</a
 			>
 			{#if data.user}
 				<a

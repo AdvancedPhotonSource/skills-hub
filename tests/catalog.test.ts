@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { zipSync, unzipSync } from 'fflate';
@@ -9,7 +9,8 @@ process.env.DATA_DIR = directory;
 const { db } = await import('../src/lib/server/db');
 const { register, authenticate, createSession, sessionUser, resetPassword, allowAttempt } =
 	await import('../src/lib/server/auth');
-const { parseUpload, validatePackage } = await import('../src/lib/server/packages');
+const { parseUpload, validatePackage, mcpPackage } = await import('../src/lib/server/packages');
+const { detailsFromForm } = await import('../src/lib/server/details');
 const {
 	publish,
 	getSkill,
@@ -18,8 +19,8 @@ const {
 	readPackageFile,
 	download,
 	searchSkills,
-	setArchived,
-	taxonomyCounts
+	taxonomyCounts,
+	deleteEntry
 } = await import('../src/lib/server/catalog');
 const { renderMarkdown } = await import('../src/lib/server/markdown');
 
@@ -39,6 +40,7 @@ const pkg = () =>
 beforeAll(async () => {
 	alice = await register('alice', 'long-passphrase-for-alice', 'Alice');
 	bob = await register('bob', 'long-passphrase-for-bob', 'Bob');
+	db.prepare('UPDATE users SET verified=1 WHERE id IN (?, ?)').run(alice.id, bob.id);
 	skillId = publish(alice, pkg(), metadata);
 });
 afterAll(() => {
@@ -74,7 +76,7 @@ describe('accounts and ownership', () => {
 		expect(() => publish(bob, pkg(), metadata, { id: skillId, expected: 1 })).toThrow(
 			'Only the owner'
 		);
-		expect(() => setArchived(skillId, bob, true, 1)).toThrow('Only the owner');
+		expect(() => deleteEntry(skillId, bob, 1)).toThrow('Only the owner');
 		expect(getSkill(skillId).revision).toBe(1);
 		expect(getSkill(skillId).ownerId).toBe(alice.id);
 	});
@@ -111,13 +113,13 @@ describe('catalog integrity', () => {
 		expect(Buffer.from(zip['test-science/SKILL.md'])).toEqual(original);
 		expect([...zip['test-science/assets/sample.bin']]).toEqual([0, 1, 255]);
 	});
-	it('hides archived skills while retaining owner access and restoring the search index', () => {
-		setArchived(skillId, alice, true, 2);
+	it('keeps legacy archived entries private until they are migrated or deleted', () => {
+		db.prepare('UPDATE skills SET archived=1 WHERE id=?').run(skillId);
 		expect(() => getSkill(skillId)).toThrow('not found');
 		expect(() => getSkill(skillId, bob)).toThrow('not found');
 		expect(getSkill(skillId, alice).archived).toBe(true);
 		expect(searchSkills(new URLSearchParams()).total).toBe(0);
-		setArchived(skillId, alice, false, 2);
+		db.prepare('UPDATE skills SET archived=0 WHERE id=?').run(skillId);
 		expect(searchSkills(new URLSearchParams()).total).toBe(1);
 	});
 });
@@ -181,7 +183,12 @@ describe('imported revisions', () => {
 			author: 'upstream',
 			licenses: []
 		};
-		const id = publish(bob, imported, { ...metadata, example: 'Inspect my HDF5 file.' });
+		const importedMetadata = {
+			...metadata,
+			example: 'Inspect my HDF5 file.',
+			relevance: 'Inspect beamline HDF5 datasets.'
+		};
+		const id = publish(bob, imported, importedMetadata);
 		const first = revisionFor(id);
 		expect(getSkill(id)).toMatchObject({
 			ownerId: bob.id,
@@ -195,12 +202,96 @@ describe('imported revisions', () => {
 		expect(searchSkills(new URLSearchParams({ origin: 'imported' })).total).toBe(1);
 		expect(() => publish(alice, imported, metadata, { id, expected: 1 })).toThrow('Only the owner');
 		imported.source = { ...imported.source, commit: 'b'.repeat(40) };
-		publish(bob, imported, metadata, { id, expected: 1 });
+		publish(bob, imported, importedMetadata, { id, expected: 1 });
 		expect(revisionFor(id).source?.commit).toBe('b'.repeat(40));
 		expect(revisionFor(id, 1).source?.commit).toBe('a'.repeat(40));
-		expect(() => publish(bob, imported, metadata, { id, expected: 1 })).toThrow('changed since');
+		expect(() => publish(bob, imported, importedMetadata, { id, expected: 1 })).toThrow(
+			'changed since'
+		);
 		expect(Buffer.from(unzipSync(download(getSkill(id), first))['test-science/SKILL.md'])).toEqual(
 			original
 		);
+	});
+});
+
+describe('typed contributions and maintenance', () => {
+	it('requires verification even when the caller holds an older verified user object', async () => {
+		const newcomer = await register('newcomer', 'a-long-newcomer-passphrase', 'Newcomer');
+		expect(() => publish(newcomer, pkg(), metadata)).toThrow('verify your account');
+		db.prepare('UPDATE users SET verified=0 WHERE id=?').run(alice.id);
+		expect(() => publish(alice, pkg(), metadata, { id: skillId, expected: 2 })).toThrow(
+			'verify your account'
+		);
+		db.prepare('UPDATE users SET verified=1 WHERE id=?').run(alice.id);
+	});
+	it('publishes an MCP without SKILL.md, filters facets, preserves snapshots, and deletes files completely', () => {
+		db.prepare('UPDATE users SET default_maintainer=1 WHERE id=?').run(alice.id);
+		const form = new FormData();
+		for (const [key, value] of Object.entries({
+			applicationType: 'mcp',
+			contexts: 'APS, 2-ID-D',
+			deployment: 'self-hosted',
+			access: 'internal',
+			transport: 'http',
+			instructions: 'Start the configured server.',
+			mcpRepository: 'https://github.com/APS/example'
+		}))
+			form.set(key, value);
+		form.append('technique', 'xrf');
+		const details = detailsFromForm(form);
+		const mcp = mcpPackage(
+			'xrf-server',
+			'Render beamline fluorescence maps',
+			details.mcp!.instructions
+		);
+		const id = publish(bob, mcp, { ...metadata, ...details });
+		expect(getSkill(id)).toMatchObject({
+			ownerId: bob.id,
+			maintainerId: alice.id,
+			applicationType: 'mcp',
+			mcp: { deployment: 'self-hosted', access: 'internal' }
+		});
+		expect(requireOwner(id, alice).id).toBe(id);
+		expect(
+			searchSkills(
+				new URLSearchParams({ type: 'mcp', context: 'aps', technique: 'xrf' })
+			).skills.map((s) => s.id)
+		).toEqual([id]);
+		expect(searchSkills(new URLSearchParams({ type: 'skill', technique: 'xrf' })).total).toBe(0);
+		expect(searchSkills(new URLSearchParams({ q: 'xrf' })).skills.some((s) => s.id === id)).toBe(
+			true
+		);
+		const first = revisionFor(id);
+		expect(first.files.map((f) => f.path)).toEqual(['README.md']);
+		publish(
+			bob,
+			mcp,
+			{ ...metadata, ...details, mcp: { ...details.mcp!, deployment: 'hosted' } },
+			{ id, expected: 1 }
+		);
+		expect(revisionFor(id, 1).details.mcp?.deployment).toBe('self-hosted');
+		expect(revisionFor(id).details.mcp?.deployment).toBe('hosted');
+		expect(() => deleteEntry(id, alice, 1)).toThrow('changed');
+		const latest = revisionFor(id);
+		deleteEntry(id, alice, 2);
+		expect(() => getSkill(id)).toThrow('not found');
+		expect(searchSkills(new URLSearchParams({ type: 'mcp' })).total).toBe(0);
+		expect(db.prepare('SELECT 1 FROM revisions WHERE skill_id=?').get(id)).toBeUndefined();
+		for (const revision of [first, latest])
+			expect(existsSync(join(directory, 'packages', revision.id))).toBe(false);
+		db.prepare('UPDATE users SET default_maintainer=0').run();
+	});
+	it('requires external attribution for local uploads and rejects unsafe MCP URLs', () => {
+		expect(() => publish(bob, pkg(), { ...metadata, provenance: 'external' })).toThrow(
+			'External contributions'
+		);
+		const form = new FormData();
+		form.set('applicationType', 'mcp');
+		form.set('instructions', 'Run the server.');
+		form.set('mcpRepository', 'javascript:alert(1)');
+		expect(() => detailsFromForm(form)).toThrow('HTTP(S)');
+		form.set('mcpRepository', 'https://example.org/server');
+		form.set('access', 'invented');
+		expect(() => detailsFromForm(form)).toThrow('valid access');
 	});
 });

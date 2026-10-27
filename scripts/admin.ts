@@ -3,8 +3,8 @@ import { db } from '../src/lib/server/db';
 import { resetPassword } from '../src/lib/server/auth';
 
 const [command, username] = process.argv.slice(2);
-if (!username || !['promote', 'demote', 'reset'].includes(command)) {
-	console.error('Usage: npm run admin -- <promote|demote|reset> <username>');
+if (!username || !['promote', 'demote', 'reset', 'verify', 'unverify'].includes(command)) {
+	console.error('Usage: npm run admin -- <promote|demote|reset|verify|unverify> <username>');
 	process.exitCode = 1;
 } else {
 	const user = db.prepare('SELECT id FROM users WHERE username=?').get(username) as
@@ -17,6 +17,11 @@ if (!username || !['promote', 'demote', 'reset'].includes(command)) {
 		await resetPassword(user.id, password);
 		console.log(
 			`Sessions revoked. Deliver this temporary password privately and ask the user to change it:\n${password}`
+		);
+	} else if (command === 'verify' || command === 'unverify') {
+		db.prepare('UPDATE users SET verified=? WHERE id=?').run(Number(command === 'verify'), user.id);
+		console.log(
+			`${username}: ${command === 'verify' ? 'verified for publishing' : 'publishing verification removed'}.`
 		);
 	} else {
 		db.prepare('UPDATE users SET is_admin=? WHERE id=?').run(

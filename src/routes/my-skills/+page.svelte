@@ -5,14 +5,14 @@
 	let { data } = $props();
 </script>
 
-<svelte:head><title>My skills · APS Skills Hub</title></svelte:head>
+<svelte:head><title>My contributions · APS Skills Hub</title></svelte:head>
 <div class="shell">
 	<div class="page-head section-heading">
 		<div>
-			<h1>My skills</h1>
-			<p>Your contributions, ready to build on. Open a skill to manage its revisions.</p>
+			<h1>My contributions</h1>
+			<p>Skills and MCPs you publish or maintain.</p>
 		</div>
-		<a class="button primary" href={`${base}/upload`}><Upload size={16} />Upload skill</a>
+		<a class="button primary" href={`${base}/upload`}><Upload size={16} />Publish</a>
 	</div>
 	{#if data.skills.length}<SkillList skills={data.skills} />{#if data.pages > 1}<div
 				class="pagination"

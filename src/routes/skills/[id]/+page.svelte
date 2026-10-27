@@ -3,6 +3,7 @@
 	import {
 		Download,
 		FileText,
+		Plug,
 		ChevronRight,
 		Clock,
 		Pencil,
@@ -10,12 +11,14 @@
 		GitBranch,
 		ExternalLink
 	} from '@lucide/svelte';
-	import { categoryName, categoryTone } from '$lib/taxonomy';
+	import { categoryName, categoryTone, techniqueName, provenanceName } from '$lib/taxonomy';
 	import InstallCard from '$lib/components/InstallCard.svelte';
+	import McpCard from '$lib/components/McpCard.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
 	import { sourceUrl, repositoryUrl } from '$lib/source';
 	let { data } = $props();
+	const details = $derived(data.revision.details);
 	const fileUrl = (path: string, view = '') => {
 		const q = new URLSearchParams({ revision: String(data.revision.number), file: path });
 		if (view) q.set('view', view);
@@ -40,32 +43,31 @@
 		{#if data.skill.archived}<div class="notice">
 				This skill is archived. It is visible only to its owner and administrators.
 			</div>{/if}{#if data.revision.number !== data.skill.revision}<div class="notice">
-				You’re viewing revision {data.revision.number}.
-				<a href={`${base}/skills/${data.skill.id}`}>View the current revision</a>
+				You’re viewing an older version.
+				<a href={`${base}/skills/${data.skill.id}`}>View the current version</a>
 			</div>{/if}
 		<div class="detail-heading">
 			<div class="detail-icon tone" data-tone={categoryTone(data.skill.categories[0])}>
-				<FileText size={28} strokeWidth={1.4} />
+				{#if details.applicationType === 'mcp'}<Plug size={28} strokeWidth={1.4} />{:else}<FileText
+						size={28}
+						strokeWidth={1.4}
+					/>{/if}
 			</div>
 			<div>
 				<div class="name-line">
 					<h1>{data.revision.name}</h1>
-					<span class="badge">Revision {data.revision.number}</span>
-					<span class="badge category-chip" data-tone={data.revision.source ? 'violet' : 'teal'}
-						>{data.revision.source ? 'Repository import' : 'Local contribution'}</span
-					>
+					{#if details.applicationType === 'mcp'}<span class="badge blue">MCP</span>{/if}
+					{#if details.provenance !== 'argonne'}<span class="badge"
+							>{provenanceName[details.provenance]}</span
+						>{/if}
 				</div>
 				<p>{data.revision.description}</p>
 			</div>
 		</div>
 		<div class="attribution">
-			<span class="avatar"
-				>{(data.revision.source?.author || data.skill.displayName).slice(0, 1).toUpperCase()}</span
-			><a
-				href={data.revision.source
-					? `${base}/?repository=${encodeURIComponent(data.revision.source.repository)}`
-					: `${base}/?author=${encodeURIComponent(data.skill.username)}`}
-				>{data.revision.source?.repository || data.skill.displayName}</a
+			<span class="avatar">{data.skill.maintainerName.slice(0, 1).toUpperCase()}</span><a
+				href={`${base}/?author=${encodeURIComponent(data.skill.maintainerUsername)}`}
+				>Maintained by {data.skill.maintainerName}</a
 			><span class="separator"></span><Clock size={13} /><time datetime={data.revision.createdAt}
 				>{new Date(data.revision.createdAt).toLocaleDateString('en-US', {
 					month: 'short',
@@ -73,13 +75,13 @@
 					year: 'numeric',
 					timeZone: 'UTC'
 				})}</time
-			><span class="separator"></span><Download size={13} /><span
-				>{data.skill.downloads} downloads</span
-			>
+			>{#if details.applicationType === 'skill'}<span class="separator"></span><Download
+					size={13}
+				/><span>{data.skill.downloads} downloads</span>{/if}
 		</div>
 		{#if data.revision.source}<div class="source-line">
 				<a href={sourceUrl(data.revision.source)} target="_blank" rel="noreferrer"
-					><GitBranch size={15} />View original skill <ExternalLink size={12} /></a
+					><GitBranch size={15} />View original source <ExternalLink size={12} /></a
 				><span
 					>Imported from commit <a
 						href={`${repositoryUrl(data.revision.source)}/commit/${data.revision.source.commit}`}
@@ -94,61 +96,91 @@
 			</div>{/if}
 	</div>
 	<div class="detail-layout">
-		<section class="source-section" aria-labelledby="source-heading">
-			<div class="source-intro">
-				<h2 id="source-heading">Review the source files</h2>
-				<p>Read the instructions and companion files before adding this skill to your agent.</p>
-			</div>
-			<div class="file-panel">
-				<FileExplorer files={data.revision.files} path={data.path} {fileUrl} />
-				<div class="file-content">
-					<div class="file-toolbar">
-						<span>{data.path}</span>
-						<div>
-							{#if data.html}<a class:chosen={!data.raw} href={fileUrl(data.path)}>Preview</a><a
-									class:chosen={data.raw}
-									href={fileUrl(data.path, 'source')}>Source</a
-								>{/if}<a
-								aria-label="Download file"
-								href={`${base}/skills/${data.skill.id}/file?revision=${data.revision.number}&path=${encodeURIComponent(data.path)}`}
-								><Download size={14} /></a
-							>
+		<section
+			class="source-section"
+			aria-label={details.applicationType === 'mcp' ? 'MCP server' : 'Skill source'}
+		>
+			{#snippet sourceView()}
+				<div class="source-intro">
+					<h2 id="source-heading">Review the source files</h2>
+					<p>
+						{details.applicationType === 'mcp'
+							? 'Supporting documentation for this MCP server.'
+							: 'Read the instructions and companion files before adding this skill to your agent.'}
+					</p>
+				</div>
+				<div class="file-panel">
+					<FileExplorer files={data.revision.files} path={data.path} {fileUrl} />
+					<div class="file-content">
+						<div class="file-toolbar">
+							<span>{data.path}</span>
+							<div>
+								{#if data.html}<a class:chosen={!data.raw} href={fileUrl(data.path)}>Preview</a><a
+										class:chosen={data.raw}
+										href={fileUrl(data.path, 'source')}>Source</a
+									>{/if}<a
+									aria-label="Download file"
+									href={`${base}/skills/${data.skill.id}/file?revision=${data.revision.number}&path=${encodeURIComponent(data.path)}`}
+									><Download size={14} /></a
+								>
+							</div>
+						</div>
+						<div class="file-body">
+							{#if data.binary}<div class="empty">
+									<FileText size={24} />
+									<h2>Binary file</h2>
+									<p>Download this file to view it in a compatible application.</p>
+								</div>{:else if data.html && !data.raw}<div class="prose">
+									{@html data.html}
+								</div>{:else}
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable source needs keyboard focus.) -->
+								<pre
+									class="raw-source"
+									tabindex="0"
+									role="region"
+									aria-label="File source">{data.text}</pre>{/if}{#if data.truncated}<div
+									class="notice"
+									style="margin-top: 20px"
+								>
+									Preview limited to the first 100 KB. Download the file to read it in full.
+								</div>{/if}
 						</div>
 					</div>
-					<div class="file-body">
-						{#if data.binary}<div class="empty">
-								<FileText size={24} />
-								<h2>Binary file</h2>
-								<p>Download this file to view it in a compatible application.</p>
-							</div>{:else if data.html && !data.raw}<div class="prose">
-								{@html data.html}
-							</div>{:else}
-							<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable source needs keyboard focus.) -->
-							<pre
-								class="raw-source"
-								tabindex="0"
-								role="region"
-								aria-label="File source">{data.text}</pre>{/if}{#if data.truncated}<div
-								class="notice"
-								style="margin-top: 20px"
-							>
-								Preview limited to the first 100 KB. Download the file to read it in full.
-							</div>{/if}
-					</div>
 				</div>
-			</div>
+			{/snippet}
+			{#if details.applicationType === 'mcp' && details.mcp}
+				<McpCard mcp={details.mcp} id={data.skill.id} />
+				{#if data.revision.files.length > 1 || data.revision.files[0]?.path !== 'README.md'}
+					<details
+						class="supporting-files"
+						open={Boolean(data.path !== 'SKILL.md' && data.path !== 'README.md')}
+					>
+						<summary>Supporting documentation</summary>{@render sourceView()}
+					</details>
+				{/if}
+			{:else}{@render sourceView()}{/if}
 		</section>
 		<aside class="detail-sidebar">
-			<InstallCard
-				id={data.skill.id}
-				revision={data.revision}
-				projectRepository={data.projectRepository}
-			/>
+			{#if details.applicationType === 'skill'}
+				<InstallCard
+					id={data.skill.id}
+					revision={data.revision}
+					projectRepository={data.projectRepository}
+				/>
+			{/if}
 			<section class="metadata">
-				<h3>About this skill</h3>
+				<h3>About this {details.applicationType === 'mcp' ? 'MCP' : 'skill'}</h3>
 				<dl>
+					{#if details.sourceUrl && !data.revision.source}<dt>Original source</dt>
+						<dd>
+							<a href={details.sourceUrl} target="_blank" rel="noreferrer"
+								>{details.upstreamAuthor || details.sourceUrl}</a
+							>
+						</dd>{/if}
+					{#if details.relevance}<dt>APS use case</dt>
+						<dd>{details.relevance}</dd>{/if}
 					{#if data.revision.source}<dt>Source publisher</dt>
-						<dd>{data.revision.source.author}</dd>
+						<dd>{details.upstreamAuthor || data.revision.source.author}</dd>
 						<dt>Repository</dt>
 						<dd>
 							<a href={repositoryUrl(data.revision.source)} target="_blank" rel="noreferrer"
@@ -164,15 +196,25 @@
 								timeZone: 'UTC'
 							})}
 						</dd>
-						<dt>Tracking ref</dt>
-						<dd>{data.revision.source.ref}</dd>{/if}
-					<dt>{data.revision.source ? 'Maintained on this hub by' : 'Published by'}</dt>
-					<dd>
-						<a href={`${base}/?author=${encodeURIComponent(data.skill.username)}`}
-							>{data.skill.username}</a
-						>
-					</dd>
-					<dt>Categories</dt>
+					{/if}
+					<dt>Application type</dt>
+					<dd>{details.applicationType === 'mcp' ? 'MCP' : 'Skill'}</dd>
+					{#if details.contexts.length}<dt>Facility / beamline</dt>
+						<dd class="tags">
+							{#each details.contexts as context}<a
+									class="badge"
+									href={`${base}/?context=${encodeURIComponent(context)}`}
+									>{context.toUpperCase()}</a
+								>{/each}
+						</dd>{/if}
+					{#if details.techniques.length}<dt>Scientific techniques</dt>
+						<dd class="tags">
+							{#each details.techniques as technique}<a
+									class="badge"
+									href={`${base}/?technique=${technique}`}>{techniqueName(technique)}</a
+								>{/each}
+						</dd>{/if}
+					<dt>Workflow</dt>
 					<dd class="tags">
 						{#each data.skill.categories as category}<a
 								class="badge category-chip"
@@ -198,30 +240,10 @@
 						</dd>{/if}
 					{#if data.revision.compatibility}<dt>Requirements</dt>
 						<dd>{data.revision.compatibility}</dd>{/if}
-					<dt>Package checksum</dt>
-					<dd class="checksum" title={data.revision.checksum}>
-						SHA-256<br />{data.revision.checksum}
-					</dd>
 				</dl>
 			</section>
-			<details class="history">
-				<summary>Revision history <span>{data.history.length}</span></summary
-				>{#each data.history as revision}<a
-						href={`?revision=${revision.number}`}
-						class:chosen={revision.number === data.revision.number}
-						><span
-							>Revision {revision.number}{revision.version ? ` · ${revision.version}` : ''}</span
-						><time
-							>{new Date(revision.createdAt).toLocaleDateString('en-US', {
-								month: 'short',
-								day: 'numeric',
-								timeZone: 'UTC'
-							})}</time
-						></a
-					>{/each}
-			</details>
 			{#if data.canEdit}<a class="button manage" href={`${base}/skills/${data.skill.id}/edit`}
-					><Pencil size={14} />Manage skill</a
+					><Pencil size={14} />Manage {details.applicationType === 'mcp' ? 'MCP' : 'skill'}</a
 				>{/if}
 		</aside>
 	</div>
@@ -237,6 +259,15 @@
 </div>
 
 <style>
+	.supporting-files {
+		margin-top: 24px;
+	}
+	.supporting-files > summary {
+		cursor: pointer;
+		color: var(--blue);
+		font-size: 13px;
+		margin-bottom: 18px;
+	}
 	.detail-shell {
 		max-width: 1240px;
 	}
@@ -413,37 +444,6 @@
 		color: var(--muted);
 		overflow-wrap: anywhere;
 	}
-	.metadata dd.checksum {
-		font-family: ui-monospace, monospace;
-		font-size: 9px;
-		line-height: 1.8;
-		color: var(--muted);
-	}
-	.history {
-		margin-top: 14px;
-		padding: 18px 4px;
-		border-top: 1px solid var(--line);
-		border-bottom: 1px solid var(--line);
-		font-size: 12px;
-		color: var(--muted);
-	}
-	.history summary {
-		cursor: pointer;
-	}
-	.history summary > span {
-		float: right;
-		color: var(--muted);
-	}
-	.history > a {
-		display: flex;
-		justify-content: space-between;
-		margin-top: 12px;
-		font-size: 11px;
-		color: var(--muted);
-	}
-	.history > a.chosen {
-		color: var(--blue);
-	}
 	.manage {
 		margin-top: 18px;
 		width: 100%;
@@ -483,10 +483,6 @@
 		}
 		.metadata {
 			width: 100%;
-		}
-		.history {
-			width: 100%;
-			margin: 0;
 		}
 		.manage {
 			width: auto;

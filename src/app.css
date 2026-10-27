@@ -8,15 +8,18 @@
 	color: #202c3d;
 	background: #fff;
 	font-synthesis: none;
-	--blue: #175ac6;
-	--blue-light: #eef4ff;
+	--argonne-blue: #0082ca;
+	--argonne-navy: #0b1f8f;
+	--argonne-green: #007836;
+	--blue: #006da8;
+	--blue-light: #edf7fc;
 	--muted: #5d6d83;
 	--line: #e4e9ef;
 	--surface: #f7f9fc;
 	--radius: 8px;
-	--tone: #275da6;
-	--tone-bg: #edf3fc;
-	--tone-line: #d7e4f5;
+	--tone: var(--blue);
+	--tone-bg: var(--blue-light);
+	--tone-line: #cce5f2;
 	font-size: 15px;
 	line-height: 1.6;
 }
@@ -123,22 +126,32 @@ pre {
 	margin-inline: auto;
 }
 .institution {
-	background: #f2f5f9;
-	color: #526176;
+	background: white;
+	color: #25354b;
+	border-top: 4px solid var(--argonne-blue);
+	border-bottom: 1px solid var(--line);
 	font-size: 11px;
 	letter-spacing: 0.2px;
 }
 .institution > .shell {
 	display: flex;
 	justify-content: space-between;
-	padding-block: 7px;
+	align-items: center;
+	gap: 24px;
+	padding-block: 18px;
+}
+.argonne-logo {
+	display: block;
+	width: 220px;
+	height: auto;
+	max-width: 100%;
 }
 .site-header {
 	border-bottom: 1px solid var(--line);
 	background: white;
 }
 .header-inner {
-	min-height: 84px;
+	min-height: 70px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -201,7 +214,7 @@ button.primary {
 }
 .button.primary:hover,
 button.primary:hover {
-	background: #114da9;
+	background: var(--argonne-navy);
 }
 .button.small {
 	padding: 8px 13px;
@@ -317,29 +330,24 @@ button.primary:hover {
 	line-height: 1.6;
 }
 .badge.blue {
-	color: #245fae;
+	color: var(--blue);
 	background: var(--blue-light);
 	border-color: #dce7fa;
 }
-[data-tone='teal'] {
-	--tone: #226a5a;
+[data-tone='green'] {
+	--tone: var(--argonne-green);
 	--tone-bg: #edf7f3;
 	--tone-line: #cfe7de;
 }
-[data-tone='violet'] {
-	--tone: #70429c;
-	--tone-bg: #f4eefb;
-	--tone-line: #e5d8f3;
+[data-tone='navy'] {
+	--tone: var(--argonne-navy);
+	--tone-bg: #eff1fb;
+	--tone-line: #d6dbf0;
 }
-[data-tone='amber'] {
-	--tone: #8b5a0b;
-	--tone-bg: #fff7e7;
-	--tone-line: #efdfb8;
-}
-[data-tone='rose'] {
-	--tone: #a14566;
-	--tone-bg: #fcf0f4;
-	--tone-line: #f0d6e0;
+[data-tone='red'] {
+	--tone: #a12b2f;
+	--tone-bg: #fcf0f0;
+	--tone-line: #f0d6d6;
 }
 .category-chip {
 	color: var(--tone);

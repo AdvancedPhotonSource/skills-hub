@@ -1,18 +1,18 @@
 import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { base } from '$app/paths';
-import { parseUpload, validatePackage } from './packages';
+import { parseUpload, validatePackage, mcpPackage } from './packages';
 import {
 	classification,
 	publish,
 	requireOwner,
 	revisionFor,
 	readPackageFile,
-	setArchived
+	deleteEntry
 } from './catalog';
 import { formError } from './forms';
 import { renderMarkdown } from './markdown';
 import { HubError } from './errors';
-import { allowAttempt } from './auth';
+import { allowAttempt, requirePublisher } from './auth';
 import { inspectRepository, importDirectory } from './github';
 
 export const editorActions = {
@@ -22,6 +22,7 @@ export const editorActions = {
 			return fail(429, { message: 'Import limit reached. Try again in an hour.' });
 		try {
 			const form = await request.formData();
+			requirePublisher(locals.user);
 			const snapshot = await inspectRepository(
 				String(form.get('repository') || ''),
 				String(form.get('ref') || '')
@@ -43,6 +44,7 @@ export const editorActions = {
 		if (!locals.user) redirect(303, `${base}/sign-in`);
 		try {
 			if (params.id) requireOwner(params.id, locals.user);
+			requirePublisher(locals.user);
 			const form = await request.formData();
 			if (form.get('method') === 'github' && !allowAttempt(`import:${locals.user.id}`, 30, 3600000))
 				return fail(429, { message: 'Import limit reached. Try again in an hour.' });
@@ -67,6 +69,7 @@ export const editorActions = {
 		let id;
 		try {
 			if (params.id) requireOwner(params.id, locals.user);
+			requirePublisher(locals.user);
 			const form = await request.formData();
 			const pkg = await packageFromForm(form, params.id);
 			id = publish(
@@ -85,6 +88,7 @@ export const editorActions = {
 		try {
 			if (!params.id) throw new HubError('Skill not found.', 404);
 			const skill = requireOwner(params.id, locals.user);
+			requirePublisher(locals.user);
 			if (!skill.source) throw new HubError('This skill was uploaded locally.');
 			const form = await request.formData();
 			if (Number(form.get('expected')) !== skill.revision)
@@ -104,17 +108,12 @@ export const editorActions = {
 		}
 		redirect(303, `${base}/skills/${params.id}`);
 	},
-	archive: async ({ request, locals, params }: RequestEvent) => {
+	delete: async ({ request, locals, params }: RequestEvent) => {
 		if (!locals.user) redirect(303, `${base}/sign-in`);
 		try {
-			if (!params.id) throw new HubError('Skill not found.', 404);
+			if (!params.id) throw new HubError('Entry not found.', 404);
 			const form = await request.formData();
-			setArchived(
-				params.id,
-				locals.user,
-				form.get('archived') === '1',
-				Number(form.get('expected'))
-			);
+			deleteEntry(params.id, locals.user, Number(form.get('expected')));
 		} catch (error) {
 			return formError(error);
 		}
@@ -124,6 +123,27 @@ export const editorActions = {
 
 async function packageFromForm(form: FormData, id?: string) {
 	const current = id ? revisionFor(id) : null;
+	if (form.get('applicationType') === 'mcp') {
+		const pkg = mcpPackage(
+			String(form.get('name') || ''),
+			String(form.get('description') || ''),
+			String(form.get('instructions') || '')
+		);
+		pkg.license = String(form.get('license') || '').slice(0, 500);
+		if (current) {
+			pkg.files.push(
+				...current.files
+					.filter((f) => f.path !== 'README.md')
+					.map((f) => ({
+						path: f.path,
+						data: readPackageFile(current, f.path),
+						mode: (f as typeof f & { mode?: number }).mode || 0o644
+					}))
+			);
+			if (current.source) pkg.source = current.source;
+		}
+		return pkg;
+	}
 	if (form.get('method') === 'github') {
 		if (id) throw new HubError('Use Refresh from GitHub to update this import.');
 		const commit = String(form.get('commit') || '');

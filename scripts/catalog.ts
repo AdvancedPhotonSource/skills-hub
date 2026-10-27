@@ -81,62 +81,12 @@ export const starterCatalog: {
 					'Choose chunk shapes and codecs for a local Zarr image stack accessed one frame at a time. Demonstrate a small write/read round trip and preserve axes and units as attributes.'
 			},
 			{
-				name: 'sympy',
-				categories: ['statistics', 'python'],
-				tags: ['python', 'sympy'],
-				role: 'Researcher',
-				example:
-					'Derive the Jacobian of this calibration model symbolically, simplify it with stated assumptions, and compare its numerical evaluation with finite differences.'
-			},
-			{
 				name: 'scikit-learn',
 				categories: ['machine-learning', 'exploration', 'statistics'],
 				tags: ['python', 'scikit-learn'],
 				role: 'Researcher',
 				example:
 					'Build a baseline classifier for these labeled spectra. Split by sample before preprocessing to prevent leakage, and report cross-validation uncertainty and a held-out confusion matrix.'
-			},
-			{
-				name: 'polars',
-				categories: ['exploration', 'python'],
-				tags: ['python', 'polars', 'parquet'],
-				role: 'Software engineer',
-				example:
-					'Use a lazy Polars query to filter scan metadata in Parquet, join calibration records, and summarize exposure time by sample without loading unrelated columns.'
-			},
-			{
-				name: 'vaex',
-				categories: ['exploration', 'hpc'],
-				tags: ['python', 'vaex', 'hdf5'],
-				role: 'Researcher',
-				example:
-					'Profile this large tabular HDF5 dataset with Vaex: inspect column types, apply a quality filter, and compute grouped statistics without materializing the whole table.'
-			}
-		]
-	},
-	{
-		repository: 'affaan-m/ECC',
-		commit: '25278e7d7b6cf6e6a4e7a6c8e10f14ff22f0eb5b',
-		ref: 'main',
-		license: 'MIT (repository LICENSE; retained in each package)',
-		skills: [
-			{
-				name: 'docker-patterns',
-				directory: '.kiro/skills/docker-patterns',
-				categories: ['deployment'],
-				tags: ['docker', 'compose', 'containers'],
-				role: 'Software engineer',
-				example:
-					'Containerize our beamline analysis API for local development with Docker Compose. Separate persistent data from the image, bind development ports to localhost, and add a health check and reproducible build.'
-			},
-			{
-				name: 'deployment-patterns',
-				directory: '.kiro/skills/deployment-patterns',
-				categories: ['deployment'],
-				tags: ['ci-cd', 'docker', 'github-actions', 'rollback'],
-				role: 'Software engineer',
-				example:
-					'Design a release pipeline for an internal APS service with automated checks, a health probe, immutable artifacts, and rollback. Account for persistent data and database migration compatibility.'
 			}
 		]
 	},
@@ -197,60 +147,12 @@ export const starterCatalog: {
 					'Organize training of our detector-image classifier with Lightning. Split by specimen before preprocessing, start with a small single-device run, log metrics locally, and preserve checkpoints before considering distributed training.'
 			},
 			{
-				name: 'shap',
-				categories: ['machine-learning', 'statistics'],
-				tags: ['python', 'shap', 'explainability', 'feature-importance'],
-				role: 'Researcher',
-				example:
-					'Explain predictions from our fitted spectral classifier on held-out samples using SHAP. State the output class and background population, check additivity, and distinguish feature attribution from physical causation.'
-			},
-			{
 				name: 'umap-learn',
 				categories: ['machine-learning', 'exploration', 'visualization'],
 				tags: ['python', 'umap', 'dimensionality-reduction', 'clustering'],
 				role: 'Researcher',
 				example:
 					'Explore these high-dimensional XRF spectra with UMAP and a PCA baseline. Choose a scientifically meaningful scaling and metric, compare seeds and neighborhoods, and check apparent clusters in the original spectra.'
-			}
-		]
-	},
-	{
-		repository: 'anthropics/skills',
-		commit: 'dbd4588f9e1033efb41dad4bef2f7947c8993d44',
-		ref: 'main',
-		license: 'Apache-2.0 (each selected skill includes LICENSE.txt)',
-		skills: [
-			{
-				name: 'frontend-design',
-				categories: ['web'],
-				tags: ['html', 'css', 'ui'],
-				role: 'Software engineer',
-				example:
-					'Design an accessible beamline run-summary page with scan status, data-quality indicators, and a compact results table. Make it usable on both a desktop monitor and a phone.'
-			},
-			{
-				name: 'webapp-testing',
-				categories: ['testing', 'web'],
-				tags: ['python', 'playwright'],
-				role: 'Software engineer',
-				example:
-					'Use Playwright to test the local application: search for a skill, open it, and download its ZIP. Check keyboard access and capture desktop and mobile screenshots.'
-			},
-			{
-				name: 'mcp-builder',
-				categories: ['mcp'],
-				tags: ['mcp', 'typescript', 'python'],
-				role: 'Software engineer',
-				example:
-					'Design a read-only MCP server over an existing scan catalog with search_scans and get_scan tools. Reuse its API, validate inputs, and provide clear structured errors.'
-			},
-			{
-				name: 'skill-creator',
-				categories: ['skill-authoring'],
-				tags: ['agent-skills', 'evaluation'],
-				role: 'Software engineer',
-				example:
-					'Turn our documented beamline data-inspection workflow into an Agent Skill with supporting scripts. Create representative evaluation prompts and check that the skill activates on appropriate tasks.'
 			}
 		]
 	},
@@ -322,28 +224,18 @@ export const starterCatalog: {
 					'In APEXA, generate a self-contained HTML report from this completed calibration run and its ESAF. Include bound-limited parameters and quote the latest experiment logbook entries with their timestamps.'
 			}
 		]
-	},
-	{
-		repository: 'browser-use/browser-use',
-		commit: '3df5806a0d097a1546d92c49bcf1b28c9972c3bd',
-		ref: 'main',
-		license: 'MIT (repository LICENSE; retained in the package)',
-		skills: [
-			{
-				name: 'browser-use',
-				directory: 'browser_use/skills/browser-use',
-				categories: ['web', 'agent-workflows', 'testing'],
-				tags: ['browser-use', 'browser', 'cdp', 'automation'],
-				role: 'Software engineer',
-				example:
-					'Using my configured Browser Use connection, open the local Skills Hub, search for GSAS-II, inspect its installation card, and capture a screenshot of the result.'
-			}
-		]
 	}
 ];
 
 // Original hub-authored packages, with reviewed upstream references inside each folder.
 export const localSkills: CatalogSkill[] = [
+	{
+		name: 'aps-hub-discovery',
+		categories: ['agent-workflows'],
+		tags: ['discovery', 'aps'],
+		role: '',
+		example: 'Find a skill or MCP for ptychography reconstruction and explain the requirements.'
+	},
 	{
 		name: 'aps-eaa-workflow-setup',
 		categories: ['agent-workflows', 'mcp', 'skill-authoring'],
@@ -362,6 +254,23 @@ export const localSkills: CatalogSkill[] = [
 	},
 	{
 		name: 'aps-2idd-control-suite',
+		applicationType: 'mcp',
+		mcp: {
+			repository: 'https://github.com/AdvancedPhotonSource/control_suite_mcp_aps_2idd',
+			documentation:
+				'https://github.com/AdvancedPhotonSource/control_suite_mcp_aps_2idd/blob/main/README.md',
+			deployment: 'self-hosted',
+			access: 'internal',
+			transport: 'http',
+			endpoint: '',
+			authentication: 'Confirm authentication and beamline access with the service maintainer.',
+			configuration:
+				'{\n  "mcpServers": {\n    "control-suite-aps-2idd": {\n      "url": "http://127.0.0.1:8050/mcp",\n      "transport": "http"\n    }\n  }\n}',
+			instructions:
+				'Install the control-suite checkout in a Python 3.11+ environment with python -m pip install -e .\nObtain the beamline TOML configuration and QueueServer connection settings. Start with control-suite-aps-2idd-mcp --config /path/to/config.toml.\nThe example connects to a locally running service. For an existing beamline deployment, obtain the actual endpoint from its maintainer. A public hosted endpoint has not been confirmed. Adapt the configuration to your MCP client.',
+			tools:
+				'Beamline health and QueueServer state; existing MDA/XRF image processing; scan acquisition; sample and zone-plate motion. Inspect advertised tool schemas for the running version. See supporting instructions for units and execution semantics.'
+		},
 		categories: ['mcp', 'bluesky', 'acquisition'],
 		tags: ['2-id-d', 'fastmcp', 'queueserver', 'epics', 'xrf'],
 		role: 'Controls engineer',
@@ -377,3 +286,28 @@ export const localSkills: CatalogSkill[] = [
 			'Prepare a GSAS-II project from my powder pattern, matching instrument parameters, and CIF. Propose staged refinement settings, retain the input project, and report residuals and model limitations before extending to a series.'
 	}
 ];
+
+export function catalogMetadata(entry: CatalogSkill, repository?: string): Classification {
+	const techniqueTags: Record<string, string> = {
+		xrf: 'xrf',
+		ptychography: 'ptychography',
+		laue: 'laue',
+		'powder-diffraction': 'diffraction',
+		crystallography: 'diffraction'
+	};
+	return {
+		...entry,
+		applicationType: entry.applicationType || 'skill',
+		tags: entry.tags.filter((tag) => !['skill', 'mcp'].includes(tag)),
+		contexts: ['aps', ...entry.tags.filter((tag) => /^\d+-id-/.test(tag))],
+		techniques: [
+			...new Set(entry.tags.flatMap((tag) => (techniqueTags[tag] ? [techniqueTags[tag]] : [])))
+		],
+		provenance:
+			repository && !repository.startsWith('AdvancedPhotonSource/') ? 'external' : 'argonne',
+		sourceUrl: repository ? `https://github.com/${repository}` : '',
+		upstreamAuthor: repository?.split('/')[0] || '',
+		relevance: entry.example || '',
+		mcp: entry.mcp || null
+	};
+}

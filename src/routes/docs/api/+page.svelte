@@ -68,6 +68,22 @@
 	}
 	const parameters = [
 		[
+			'type',
+			'skill | mcp',
+			'Application type. MCP records include connection and deployment metadata.'
+		],
+		['context', 'string', 'One facility or beamline, such as aps or 2-id-d.'],
+		[
+			'technique',
+			'string',
+			'Scientific technique ID: xrf, ptychography, tomography, saxs, diffraction, laue, or spectroscopy.'
+		],
+		[
+			'provenance',
+			'argonne | external | adapted',
+			'Authorship, independent of upload/import method.'
+		],
+		[
 			'q',
 			'string',
 			'Optional search text, trimmed to 200 characters. Unquoted words match prefixes; all terms must match. Double quotes group a phrase.'
@@ -84,11 +100,15 @@
 			'string',
 			'Exact role label: Beamline scientist, Researcher, Software engineer, Controls engineer, or System administrator.'
 		],
-		['author', 'string', 'Hub username or upstream publisher, such as curated or browser-use.'],
+		[
+			'author',
+			'string',
+			'Submitter or maintainer username (such as haskels), or upstream publisher.'
+		],
 		[
 			'repository',
 			'owner/repo',
-			'Imported-source repository, such as browser-use/browser-use. This does not match the related-project links of local contributions.'
+			'Imported-source repository, such as AdvancedPhotonSource/ptychodus. This does not match related-project or MCP repository links.'
 		],
 		['origin', 'imported | uploaded', 'Filter repository imports or local contributions.'],
 		[
@@ -122,7 +142,9 @@
 			<Braces size={17} /> Developer reference <span class="badge">v1</span>
 		</div>
 		<h1>Catalog API documentation</h1>
-		<p>Find skills, inspect their provenance, and bring complete packages into your tools.</p>
+		<p>
+			Find skills and MCPs, inspect their provenance, and retrieve packages or connection details.
+		</p>
 		<div class="hero-links">
 			<a class="button primary" href="#playground"><Play size={15} />Try a request</a><a
 				class="button"
@@ -191,7 +213,8 @@
 			<code class="route">/api/v1/skills</code>
 			<p>
 				Omit filters to browse all active entries. Combine parameters to narrow results; pagination
-				returns up to 20 skills per page.
+				returns up to 20 entries per page. Existing <code>/skills</code> routes serve both application
+				types.
 			</p>
 			<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable table needs keyboard focus.) -->
 			<div class="table-scroll" tabindex="0" role="region" aria-label="Search parameters">
@@ -209,7 +232,8 @@
 				code={'{\n  "skills": [],\n  "total": 0,\n  "page": 1,\n  "pages": 0,\n  "query": ""\n}'}
 			/>
 			<p class="caption">
-				An empty result is still HTTP 200. Each item in <code>skills</code> is a skill record;
+				An empty result is still HTTP 200. Each item in <code>skills</code> is a skill or MCP
+				record;
 				<code>total</code>
 				counts all matches and <code>pages</code> is the total number of pages. Continue until
 				<code>page &gt;= pages</code>.
@@ -238,7 +262,26 @@
 						<tr
 							><td
 								><code>skill.ownerId</code><br /><code>username</code>, <code>displayName</code></td
-							><td>Stable local owner ID and the hub maintainer’s username and display name.</td
+							><td>Original hub submitter’s ID, username, and display name.</td></tr
+						>
+						<tr
+							><td
+								><code>skill.maintainerId</code>, <code>maintainerName</code>,
+								<code>maintainerUsername</code></td
+							><td
+								>Employee maintaining this entry, separately from its submitter and upstream author.</td
+							></tr
+						>
+						<tr
+							><td
+								><code>applicationType</code>, <code>contexts</code>, <code>techniques</code>,
+								<code>provenance</code>, <code>mcp</code></td
+							><td
+								>Structured catalog metadata on the skill record. MCP metadata includes deployment,
+								access, transport, endpoint, authentication requirements, configuration, tools, and
+								instructions; it is null for skills. Each revision snapshots these fields in <code
+									>revision.details</code
+								>.</td
 							></tr
 						>
 						<tr
