@@ -3,8 +3,6 @@ import type { Classification } from '../src/lib/server/catalog';
 export type CatalogSkill = Classification & {
 	name: string;
 	directory?: string;
-	description?: string;
-	compatibility?: string;
 };
 
 // Reviewed source selection; commits make the starter library reproducible.
@@ -256,35 +254,6 @@ export const localSkills: CatalogSkill[] = [
 		role: 'Researcher',
 		example:
 			'Prepare a reproducible lauelab indexing workflow for these APS 34-ID-E frames and their matching detector geometry and crystal XML files. Summarize peaks, orientations, unique indexed peaks, and any input failures.'
-	},
-	{
-		name: 'aps-2idd-control-suite',
-		applicationType: 'mcp',
-		description:
-			'Configure, inspect, and troubleshoot the APS 2-ID-D control-suite FastMCP gateway to Bluesky QueueServer. Use for MCP connection setup, beamline health, existing MDA/XRF image processing, scan payloads, or sample versus zone-plate motion semantics. Covers tool names, units, artifact paths, and plan/function completion contracts.',
-		compatibility:
-			'Python 3.11+, the control-suite-mcp-aps-2idd package, an HTTP MCP client, and the configured beamline QueueServer. Processing needs access to the MDA/HDF5 data on the service host. Reviewed at commit 5180dd61714706f391648b83085680e9800e41aa.',
-		mcp: {
-			repository: 'https://github.com/AdvancedPhotonSource/control_suite_mcp_aps_2idd',
-			documentation:
-				'https://github.com/AdvancedPhotonSource/control_suite_mcp_aps_2idd/blob/main/README.md',
-			deployment: 'self-hosted',
-			access: 'internal',
-			transport: 'http',
-			endpoint: '',
-			authentication: 'Confirm authentication and beamline access with the service maintainer.',
-			configuration:
-				'{\n  "mcpServers": {\n    "control-suite-aps-2idd": {\n      "url": "http://127.0.0.1:8050/mcp",\n      "transport": "http"\n    }\n  }\n}',
-			instructions:
-				'Install the control-suite checkout in a Python 3.11+ environment with python -m pip install -e .\nObtain the beamline TOML configuration and QueueServer connection settings. Start with control-suite-aps-2idd-mcp --config /path/to/config.toml.\nThe example connects to a locally running service. For an existing beamline deployment, obtain the actual endpoint from its maintainer. A public hosted endpoint has not been confirmed. Adapt the configuration to your MCP client.',
-			tools:
-				'Beamline health and QueueServer state; existing MDA/XRF image processing; scan acquisition; sample and zone-plate motion. Inspect advertised tool schemas for the running version. See supporting instructions for units and execution semantics.'
-		},
-		categories: ['mcp', 'bluesky', 'acquisition'],
-		tags: ['2-id-d', 'fastmcp', 'queueserver', 'epics', 'xrf'],
-		role: 'Controls engineer',
-		example:
-			'Check our APS 2-ID-D control-suite MCP connection and QueueServer state, then reprocess this existing MDA file into an XRF image. Report the returned artifacts and any missing configuration.'
 	},
 	{
 		name: 'aps-gsas-ii-powder-refinement',
