@@ -22,14 +22,28 @@ export type SkillPackage = {
 };
 export const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
 
-export function mcpPackage(name: string, description: string, instructions: string): SkillPackage {
+export function mcpPackage(
+	name: string,
+	description: string,
+	instructions: string,
+	companions: PackageFile[] = []
+): SkillPackage {
 	if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) || name.length > 64)
 		throw new HubError('Use a lowercase, hyphenated name (up to 64 characters).');
 	if (!description.trim() || description.length > 1024)
 		throw new HubError('Provide a description of 1–1,024 characters.');
 	if (!instructions.trim() || instructions.length > 12000)
 		throw new HubError('Provide MCP instructions of 1–12,000 characters.');
-	const content = `# ${name}\n\n${description}\n\n${instructions}\n`;
+	const files = companions.filter((file) => !/(^|\/)SKILL\.md$/i.test(file.path));
+	if (!files.some((file) => file.path === 'README.md')) {
+		files.push({
+			path: 'README.md',
+			data: Buffer.from(`# ${name}\n\n${description}\n\n${instructions}\n`),
+			mode: 0o644
+		});
+	}
+	files.sort((a, b) => a.path.localeCompare(b.path));
+	const content = files.find((file) => file.path === 'README.md')!.data.toString('utf8');
 	return {
 		name,
 		description: description.trim(),
@@ -38,7 +52,7 @@ export function mcpPackage(name: string, description: string, instructions: stri
 		compatibility: '',
 		version: '',
 		projectRepository: null,
-		files: [{ path: 'README.md', data: Buffer.from(content), mode: 0o644 }]
+		files
 	};
 }
 

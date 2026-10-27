@@ -1,6 +1,11 @@
 import type { Classification } from '../src/lib/server/catalog';
 
-export type CatalogSkill = Classification & { name: string; directory?: string };
+export type CatalogSkill = Classification & {
+	name: string;
+	directory?: string;
+	description?: string;
+	compatibility?: string;
+};
 
 // Reviewed source selection; commits make the starter library reproducible.
 export const starterCatalog: {
@@ -255,6 +260,10 @@ export const localSkills: CatalogSkill[] = [
 	{
 		name: 'aps-2idd-control-suite',
 		applicationType: 'mcp',
+		description:
+			'Configure, inspect, and troubleshoot the APS 2-ID-D control-suite FastMCP gateway to Bluesky QueueServer. Use for MCP connection setup, beamline health, existing MDA/XRF image processing, scan payloads, or sample versus zone-plate motion semantics. Covers tool names, units, artifact paths, and plan/function completion contracts.',
+		compatibility:
+			'Python 3.11+, the control-suite-mcp-aps-2idd package, an HTTP MCP client, and the configured beamline QueueServer. Processing needs access to the MDA/HDF5 data on the service host. Reviewed at commit 5180dd61714706f391648b83085680e9800e41aa.',
 		mcp: {
 			repository: 'https://github.com/AdvancedPhotonSource/control_suite_mcp_aps_2idd',
 			documentation:

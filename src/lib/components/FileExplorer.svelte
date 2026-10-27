@@ -12,9 +12,14 @@
 	let {
 		files,
 		path,
-		fileUrl
-	}: { files: { path: string; size: number }[]; path: string; fileUrl: (path: string) => string } =
-		$props();
+		fileUrl,
+		label = 'Skill files'
+	}: {
+		files: { path: string; size: number }[];
+		path: string;
+		fileUrl: (path: string) => string;
+		label?: string;
+	} = $props();
 	type Entry = { name: string; path: string; size: number; children?: Entry[] };
 	const tree = $derived.by(() => {
 		const root: Entry[] = [];
@@ -87,7 +92,7 @@
 			>{files.length} {files.length === 1 ? 'file' : 'files'}</span
 		><ChevronRight size={15} /></summary
 	>
-	<nav aria-label="Skill files">{@render branches(tree)}</nav>
+	<nav aria-label={label}>{@render branches(tree)}</nav>
 </details>
 
 <style>

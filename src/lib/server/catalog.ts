@@ -5,7 +5,7 @@ import { zipSync } from 'fflate';
 import { db, dataDir } from './db';
 import { categories, roles } from '../taxonomy';
 import { HubError } from './errors';
-import { sha256, type SkillPackage } from './packages';
+import { sha256, mcpPackage, type SkillPackage } from './packages';
 import type { Skill, Revision, User, CatalogDetails } from '../types';
 import { requirePublisher } from './auth';
 import { detailsFromForm, readDetails, validateDetails } from './details';
@@ -260,6 +260,10 @@ export function publish(
 		(!details.sourceUrl || !details.upstreamAuthor || !details.relevance)
 	)
 		throw new HubError('External contributions need an author, source URL, and APS use case.');
+	if (details.applicationType === 'mcp') {
+		const normalized = mcpPackage(pkg.name, pkg.description, details.mcp!.instructions, pkg.files);
+		pkg = { ...pkg, files: normalized.files, content: normalized.content };
+	}
 	const maintainer = db.prepare('SELECT id FROM users WHERE default_maintainer = 1').get() as
 		{ id: string } | undefined;
 	if (existing && existing.name !== pkg.name)

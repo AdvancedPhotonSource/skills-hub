@@ -2,7 +2,7 @@ import { db } from '../src/lib/server/db';
 import { userById } from '../src/lib/server/auth';
 import { classification, getSkill, publish, revisionFor } from '../src/lib/server/catalog';
 import { inspectRepository, importDirectory } from '../src/lib/server/github';
-import { validatePackage, sha256 } from '../src/lib/server/packages';
+import { validatePackage, mcpPackage, sha256 } from '../src/lib/server/packages';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -74,7 +74,12 @@ try {
 		}
 	}
 	for (const entry of localSkills) {
-		const folder = fileURLToPath(new URL(`../skills/${entry.name}/`, import.meta.url));
+		const folder = fileURLToPath(
+			new URL(
+				`../${entry.applicationType === 'mcp' ? 'mcps' : 'skills'}/${entry.name}/`,
+				import.meta.url
+			)
+		);
 		const files = readdirSync(folder, { recursive: true, withFileTypes: true })
 			.filter((file) => !file.isDirectory())
 			.map((file) => {
@@ -86,7 +91,18 @@ try {
 					mode: statSync(path).mode & 0o111 ? 0o755 : 0o644
 				};
 			});
-		const pkg = validatePackage(files);
+		const pkg =
+			entry.applicationType === 'mcp'
+				? {
+						...mcpPackage(
+							entry.name,
+							entry.description || '',
+							entry.mcp?.instructions || '',
+							files
+						),
+						compatibility: entry.compatibility || ''
+					}
+				: validatePackage(files);
 		if (pkg.name !== entry.name) throw new Error(`Unexpected local skill name: ${entry.name}`);
 		const row = db
 			.prepare(

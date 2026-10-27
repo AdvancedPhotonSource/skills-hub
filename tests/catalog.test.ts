@@ -263,6 +263,12 @@ describe('typed contributions and maintenance', () => {
 		);
 		const first = revisionFor(id);
 		expect(first.files.map((f) => f.path)).toEqual(['README.md']);
+		const reference = Buffer.from('# Sources\n\nhttps://example.org/xrf\n');
+		mcp.files.push(
+			{ path: 'SKILL.md', data: original, mode: 0o644 },
+			{ path: 'legacy/SKILL.md', data: original, mode: 0o644 },
+			{ path: 'references/sources.md', data: reference, mode: 0o644 }
+		);
 		publish(
 			bob,
 			mcp,
@@ -271,6 +277,17 @@ describe('typed contributions and maintenance', () => {
 		);
 		expect(revisionFor(id, 1).details.mcp?.deployment).toBe('self-hosted');
 		expect(revisionFor(id).details.mcp?.deployment).toBe('hosted');
+		expect(revisionFor(id).files.map((file) => file.path)).toEqual([
+			'README.md',
+			'references/sources.md'
+		]);
+		expect(readPackageFile(revisionFor(id), 'references/sources.md')).toEqual(reference);
+		const archive = unzipSync(download(getSkill(id), revisionFor(id)));
+		expect(Object.keys(archive)).toEqual([
+			'xrf-server/README.md',
+			'xrf-server/references/sources.md'
+		]);
+		expect(Buffer.from(archive['xrf-server/references/sources.md'])).toEqual(reference);
 		expect(() => deleteEntry(id, alice, 1)).toThrow('changed');
 		const latest = revisionFor(id);
 		deleteEntry(id, alice, 2);

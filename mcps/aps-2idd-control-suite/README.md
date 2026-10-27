@@ -1,14 +1,3 @@
----
-name: aps-2idd-control-suite
-description: Configure, inspect, and troubleshoot the APS 2-ID-D control-suite FastMCP gateway to Bluesky QueueServer. Use for MCP connection setup, beamline health, existing MDA/XRF image processing, scan payloads, or sample versus zone-plate motion semantics. Covers tool names, units, artifact paths, and plan/function completion contracts.
-compatibility: Python 3.11+, the control-suite-mcp-aps-2idd package, an HTTP MCP client, and the configured beamline QueueServer. Processing needs access to the MDA/HDF5 data on the service host. Reviewed at commit 5180dd61714706f391648b83085680e9800e41aa.
-metadata:
-  author: APS Skills Hub
-  version: '1.0.0'
-  source-repository: https://github.com/AdvancedPhotonSource/control_suite_mcp_aps_2idd
-  source-commit: 5180dd61714706f391648b83085680e9800e41aa
----
-
 # APS 2-ID-D control-suite integration
 
 An original hub-authored workflow based on the [reviewed sources](references/sources.md). The package provides instructions; the MCP service and beamline environment are separate installations.

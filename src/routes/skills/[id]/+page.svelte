@@ -110,7 +110,12 @@
 					</p>
 				</div>
 				<div class="file-panel">
-					<FileExplorer files={data.revision.files} path={data.path} {fileUrl} />
+					<FileExplorer
+						files={data.revision.files}
+						path={data.path}
+						{fileUrl}
+						label={details.applicationType === 'mcp' ? 'MCP files' : 'Skill files'}
+					/>
 					<div class="file-content">
 						<div class="file-toolbar">
 							<span>{data.path}</span>

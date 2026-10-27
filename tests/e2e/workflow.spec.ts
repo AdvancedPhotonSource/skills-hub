@@ -173,9 +173,14 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 		'Read metadata before loading arrays.',
 		'Read only the metadata and a small array slice.'
 	);
-	await page
-		.locator('input[type=file]')
-		.setInputFiles({ name: 'SKILL.md', mimeType: 'text/markdown', buffer: Buffer.from(updated) });
+	const reference = '# Reviewed sources\n\nhttps://example.org/beamline\n';
+	await page.locator('input[type=file]').setInputFiles({
+		name: 'skill.zip',
+		mimeType: 'application/zip',
+		buffer: Buffer.from(
+			zipSync({ 'SKILL.md': Buffer.from(updated), 'references/sources.md': Buffer.from(reference) })
+		)
+	});
 	await page.getByRole('button', { name: 'Save changes' }).click();
 	await expect(
 		page.getByText('Read only the metadata and a small array slice.', { exact: true })
@@ -189,6 +194,27 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	).toBe(source);
 	await page.goto('/saved');
 	await expect(page.getByRole('link', { name: 'browser-test-skill' })).toBeVisible();
+	await page.goto(`${skillPath}/edit`);
+	await page.getByLabel('Application type').selectOption('mcp');
+	await page
+		.getByLabel('Connection / deployment instructions')
+		.fill('Connect to the configured beamline MCP service.');
+	await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+	await page.getByText('Supporting documentation', { exact: true }).click();
+	const mcpFiles = page.getByRole('navigation', { name: 'MCP files' });
+	await expect(mcpFiles.getByRole('link', { name: /SKILL.md/ })).toHaveCount(0);
+	await mcpFiles.getByRole('link', { name: /sources.md/ }).click();
+	await expect(page.getByRole('heading', { name: 'Reviewed sources' })).toBeVisible();
+	const mcpZip = unzipSync(
+		new Uint8Array(await (await guest.request.get(`${skillPath}/download`)).body())
+	);
+	expect(Object.keys(mcpZip)).toEqual([
+		'browser-test-skill/README.md',
+		'browser-test-skill/references/sources.md'
+	]);
+	expect(Buffer.from(mcpZip['browser-test-skill/references/sources.md']).toString()).toBe(
+		reference
+	);
 	await page.goto(`${skillPath}/edit`);
 	await page.getByRole('button', { name: 'Delete entry', exact: true }).click();
 	await expect(page).toHaveURL(/\/my-skills$/);
