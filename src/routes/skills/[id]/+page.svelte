@@ -14,6 +14,7 @@
 	import { categoryName, categoryTone, techniqueName, provenanceName } from '$lib/taxonomy';
 	import InstallCard from '$lib/components/InstallCard.svelte';
 	import McpCard from '$lib/components/McpCard.svelte';
+	import RepositoryLink from '$lib/components/RepositoryLink.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
 	import { sourceUrl, repositoryUrl } from '$lib/source';
@@ -172,6 +173,8 @@
 					revision={data.revision}
 					projectRepository={data.projectRepository}
 				/>
+			{:else if details.mcp?.repository}
+				<RepositoryLink href={details.mcp.repository} />
 			{/if}
 			<section class="metadata">
 				<h3>About this {details.applicationType === 'mcp' ? 'MCP' : 'skill'}</h3>

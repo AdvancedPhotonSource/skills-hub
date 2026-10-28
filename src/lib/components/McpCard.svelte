@@ -32,8 +32,6 @@
 			<p class="instructions">{mcp.tools}</p>
 		</details>{/if}
 	<div class="links">
-		{#if mcp.repository}<a href={mcp.repository} target="_blank" rel="noreferrer">Repository ↗</a
-			>{/if}
 		{#if mcp.documentation}<a href={mcp.documentation} target="_blank" rel="noreferrer"
 				>Documentation ↗</a
 			>{/if}

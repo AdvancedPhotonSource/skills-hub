@@ -1,17 +1,9 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import {
-		Copy,
-		Check,
-		Download,
-		GitBranch,
-		ExternalLink,
-		Sparkles,
-		Terminal,
-		MessageSquare
-	} from '@lucide/svelte';
+	import { Copy, Check, Download, Sparkles, Terminal, MessageSquare } from '@lucide/svelte';
 	import SaveButton from './SaveButton.svelte';
+	import RepositoryLink from './RepositoryLink.svelte';
 	import { sourceUrl } from '$lib/source';
 	import { installCommand, installPrompt, packageRunners, type PackageRunner } from '$lib/install';
 	import type { Revision } from '$lib/types';
@@ -100,15 +92,7 @@
 	<div class="package-actions">
 		<a class="button" href={downloadUrl}><Download size={15} />Download ZIP</a><SaveButton {id} />
 	</div>
-	{#if githubUrl}<a class="repository-link" href={githubUrl} target="_blank" rel="noreferrer"
-			><GitBranch size={18} /><span
-				><strong>View on GitHub</strong><small
-					>{revision.source
-						? revision.source.repository
-						: projectRepository?.replace('https://github.com/', '')}</small
-				></span
-			><ExternalLink size={13} /></a
-		>
+	{#if githubUrl}<RepositoryLink href={githubUrl} label={revision.source?.repository} embedded />
 		{#if !revision.source}<p class="project-note">
 				Project repository · skill maintained in this hub
 			</p>{/if}{/if}
@@ -241,31 +225,6 @@
 		padding: 8px 12px;
 		font-size: 12px;
 		flex: 1;
-	}
-	.repository-link {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		border-top: 1px solid var(--line);
-		margin-top: 18px;
-		padding-top: 18px;
-		color: #384e6e;
-	}
-	.repository-link span {
-		flex: 1;
-		min-width: 0;
-	}
-	.repository-link strong {
-		display: block;
-		font-size: 12px;
-		font-weight: 600;
-	}
-	.repository-link small {
-		display: block;
-		font-size: 10px;
-		color: var(--muted);
-		overflow-wrap: anywhere;
-		margin-top: 3px;
 	}
 	.project-note {
 		font-size: 10px;
