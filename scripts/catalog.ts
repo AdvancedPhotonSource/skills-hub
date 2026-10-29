@@ -20,46 +20,6 @@ export const starterCatalog: {
 		license: 'MIT (repository LICENSE.md; individual declarations retained)',
 		skills: [
 			{
-				name: 'exploratory-data-analysis',
-				categories: ['exploration'],
-				tags: ['python', 'hdf5', 'numpy'],
-				role: 'Researcher',
-				example:
-					'Inspect the groups, dataset shapes, dtypes, and attributes in my HDF5 file before loading arrays. Identify missing metadata and propose a bounded first analysis.'
-			},
-			{
-				name: 'matplotlib',
-				categories: ['visualization', 'python'],
-				tags: ['python', 'matplotlib'],
-				role: 'Researcher',
-				example:
-					'Plot these three intensity-versus-q scans with labeled units, uncertainty bars, and a colorblind-friendly legend. Export a reproducible script plus SVG and PNG figures.'
-			},
-			{
-				name: 'scientific-visualization',
-				categories: ['visualization', 'writing'],
-				tags: ['python', 'matplotlib', 'seaborn'],
-				role: 'Researcher',
-				example:
-					'Turn these scan results into a publication-ready multipanel figure. Keep scales and units consistent, show uncertainty, and explain the choices in a short caption.'
-			},
-			{
-				name: 'statistical-analysis',
-				categories: ['statistics'],
-				tags: ['python', 'scipy', 'statsmodels'],
-				role: 'Researcher',
-				example:
-					'Compare measurements from two sample conditions with repeated scans. Identify the experimental unit, check assumptions, and report effect sizes and confidence intervals.'
-			},
-			{
-				name: 'uncertainty-and-units',
-				categories: ['statistics', 'reduction'],
-				tags: ['python', 'pint', 'uncertainties'],
-				role: 'Beamline scientist',
-				example:
-					'Propagate uncertainty through an intensity normalization using signal, background, monitor counts, and exposure time. Track units and shared calibration uncertainties explicitly.'
-			},
-			{
 				name: 'pymatgen',
 				categories: ['materials', 'scattering'],
 				tags: ['python', 'pymatgen', 'crystallography'],

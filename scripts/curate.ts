@@ -18,7 +18,12 @@ const removed = new Set([
 	'sympy',
 	'polars',
 	'vaex',
-	'shap'
+	'shap',
+	'exploratory-data-analysis',
+	'scientific-visualization',
+	'statistical-analysis',
+	'matplotlib',
+	'uncertainty-and-units'
 ]);
 
 try {
