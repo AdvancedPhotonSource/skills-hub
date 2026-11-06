@@ -45,15 +45,15 @@
 		<a class="brand" href={`${base}/`} aria-label="APS Skills Hub home"
 			><span>APS <strong>Skills Hub</strong></span></a
 		>
-		<button
-			class="icon-button mobile-menu"
-			aria-label={menu ? 'Close navigation' : 'Open navigation'}
-			aria-expanded={menu}
-			onclick={() => (menu = !menu)}
-			>{#if menu}<X size={22} />{:else}<Menu size={22} />{/if}</button
-		>
-		<nav class:open={menu} aria-label="Main navigation">
-			{#if data.user}
+		{#if data.user}
+			<button
+				class="icon-button mobile-menu"
+				aria-label={menu ? 'Close navigation' : 'Open navigation'}
+				aria-expanded={menu}
+				onclick={() => (menu = !menu)}
+				>{#if menu}<X size={22} />{:else}<Menu size={22} />{/if}</button
+			>
+			<nav class:open={menu} aria-label="Main navigation">
 				{#each [['/', 'Explore'], ['/categories', 'Categories'], ['/saved', 'Saved']] as [path, label]}
 					<a
 						class:active={page.url.pathname === `${base}${path}`}
@@ -61,16 +61,14 @@
 						onclick={() => (menu = false)}>{label}</a
 					>
 				{/each}
-				{#if data.user}<a
-						class:active={page.url.pathname === `${base}/my-skills`}
-						href={`${base}/my-skills`}
-						onclick={() => (menu = false)}>My contributions</a
-					>{/if}
+				<a
+					class:active={page.url.pathname === `${base}/my-skills`}
+					href={`${base}/my-skills`}
+					onclick={() => (menu = false)}>My contributions</a
+				>
 				<a class="button primary small" href={`${base}/upload`} onclick={() => (menu = false)}
 					><Upload size={15} /> Publish</a
 				>
-			{/if}
-			{#if data.user}
 				<a
 					class="account-link"
 					href={`${base}/account`}
@@ -80,8 +78,8 @@
 						class="account-name">{data.user.username}</span
 					></a
 				>
-			{:else}<a href={`${base}/sign-in`} onclick={() => (menu = false)}>Sign in</a>{/if}
-		</nav>
+			</nav>
+		{/if}
 	</div>
 </header>
 <main id="main">{@render children()}</main>
