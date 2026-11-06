@@ -1,0 +1,25 @@
+{
+	admin off
+	auto_https off
+	servers {
+		protocols h1 h2
+	}
+}
+
+https://kairo.aps.anl.gov:8443 {
+	tls /local/haskels/skills-hub/tls/kairo.aps.anl.gov.fullchain.pem /local/haskels/skills-hub/tls/kairo.aps.anl.gov.key
+
+	@outside not remote_ip 127.0.0.1/32 ::1/128 10.0.0.0/8 164.54.0.0/16 130.202.0.0/16
+	respond @outside "Argonne network or VPN required." 403
+
+	@maintenance {
+		not remote_ip 127.0.0.1/32 ::1/128
+		not file {
+			root /local/haskels/skills-hub
+			try_files https-ready
+		}
+	}
+	respond @maintenance "Skills Hub migration in progress. Please try again shortly." 503
+
+	reverse_proxy 127.0.0.1:19005
+}

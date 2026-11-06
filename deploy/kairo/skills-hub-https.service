@@ -1,0 +1,17 @@
+[Unit]
+Description=APS Skills Hub HTTPS proxy
+After=network.target skills-hub.service
+Wants=skills-hub.service
+
+[Service]
+Type=simple
+WorkingDirectory=/local/haskels/skills-hub
+ExecStart=/local/haskels/skills-hub/runtime/caddy run --config config/Caddyfile --adapter caddyfile
+NoNewPrivileges=true
+UMask=0077
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

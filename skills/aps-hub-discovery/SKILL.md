@@ -7,7 +7,7 @@ metadata:
 
 # Find a skill or MCP for an APS workflow
 
-Use the hub URL supplied by the user; otherwise use https://arecibo.xray.aps.anl.gov:9005. Browsing is read-only and requires no account. The deployed hub requires Argonne network or VPN access. If unreachable, explain this and ask the user to attach search results or relevant entries; do not claim that the catalog has no matches.
+Use the hub URL supplied by the user; otherwise use https://kairo.aps.anl.gov:8443. Browsing is read-only and requires no account. The deployed hub requires Argonne network or VPN access. If unreachable, explain this and ask the user to attach search results or relevant entries; do not claim that the catalog has no matches.
 
 1. Identify the requested outcomes, scientific technique, beamline/facility, and environment. Ask a short question only when a missing requirement prevents useful recommendations.
 2. GET `{hub}/api/v1/categories` for workflow categories. Search `{hub}/api/v1/skills?q={encoded terms}` using several short queries and synonyms (for example `xrf`, `fluorescence`, and `2-id-d`). Search terms use AND matching, so do not submit the entire natural-language request as one query. Follow `page` through `pages` when useful.

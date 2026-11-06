@@ -7,7 +7,7 @@ Type=simple
 WorkingDirectory=/local/haskels/skills-hub/current
 ExecStart=/local/haskels/skills-hub/runtime/node/bin/node build/index.js
 Environment=NODE_ENV=production
-Environment=ORIGIN=https://arecibo.xray.aps.anl.gov:9005
+Environment=ORIGIN=https://kairo.aps.anl.gov:8443
 Environment=HOST=127.0.0.1
 Environment=PORT=19005
 Environment=DATA_DIR=/local/haskels/skills-hub/data

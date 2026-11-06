@@ -6,11 +6,11 @@ An internal catalog of Agent Skills and MCP servers for Argonne’s Advanced Pho
 
 ## Shared instance
 
-[https://arecibo.xray.aps.anl.gov:9005](https://arecibo.xray.aps.anl.gov:9005) — available on Argonne networks and VPN.
+[https://kairo.aps.anl.gov:8443](https://kairo.aps.anl.gov:8443) — available on Argonne networks and VPN. See [deployment notes](deploy/kairo/README.md).
 
 ## API
 
-A read-only REST API supports skill search, skill details, and category discovery. Browsing and downloads require no sign-in. See the [API documentation](https://arecibo.xray.aps.anl.gov:9005/docs/api) for endpoints and examples.
+A read-only REST API supports skill search, skill details, and category discovery. Browsing and downloads require no sign-in. See the [API documentation](https://kairo.aps.anl.gov:8443/docs/api) for endpoints and examples.
 
 ## Catalog administration
 
