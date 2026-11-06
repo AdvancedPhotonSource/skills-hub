@@ -421,8 +421,8 @@
 					: 'Upload SKILL.md or a ZIP with its supporting files.'}
 			</p>
 			<p>
-				Maintained by {skill?.maintainerName || page.data.user?.displayName}. Publishing requires a
-				verified account.
+				Maintained by {skill?.maintainerName || page.data.user?.displayName}. All Argonne SSO users
+				can publish skills and MCPs.
 			</p>
 		</aside>
 	</div>

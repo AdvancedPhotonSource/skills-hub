@@ -19,9 +19,9 @@ export function userById(id: string): User | null {
 }
 
 export function requirePublisher(user: User) {
-	const current = userById(user.id);
-	if (!current?.verified)
-		throw new HubError('Ask Samuel Haskel to verify your account before publishing.', 403);
+	// HTTP requests already require an Entra session in hooks.server.ts.
+	// Every signed-in user can publish; legacy verification is not an access gate.
+	if (!userById(user.id)) throw new HubError('Sign in to publish.', 403);
 }
 
 export function checkPassword(password: string) {

@@ -4,12 +4,9 @@ import { resetPassword } from '../src/lib/server/auth';
 import { entraIdentity, linkEntraIdentity } from '../src/lib/server/entra';
 
 const [command, username, objectId] = process.argv.slice(2);
-if (
-	!username ||
-	!['promote', 'demote', 'reset', 'verify', 'unverify', 'link-entra', 'identity'].includes(command)
-) {
+if (!username || !['promote', 'demote', 'reset', 'link-entra', 'identity'].includes(command)) {
 	console.error(
-		'Usage: npm run admin -- <promote|demote|reset|verify|unverify|identity> <username>\n       npm run admin -- link-entra <username> <Entra-object-ID>'
+		'Usage: npm run admin -- <promote|demote|reset|identity> <username>\n       npm run admin -- link-entra <username> <Entra-object-ID>'
 	);
 	process.exitCode = 1;
 } else {
@@ -40,11 +37,6 @@ if (
 		await resetPassword(user.id, password);
 		console.log(
 			`Sessions revoked. Deliver this temporary password privately and ask the user to change it:\n${password}`
-		);
-	} else if (command === 'verify' || command === 'unverify') {
-		db.prepare('UPDATE users SET verified=? WHERE id=?').run(Number(command === 'verify'), user.id);
-		console.log(
-			`${username}: ${command === 'verify' ? 'verified for publishing' : 'publishing verification removed'}.`
 		);
 	} else {
 		db.prepare('UPDATE users SET is_admin=? WHERE id=?').run(

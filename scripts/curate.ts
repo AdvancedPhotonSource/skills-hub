@@ -35,7 +35,7 @@ try {
 	db.transaction(() => {
 		db.prepare('UPDATE users SET default_maintainer=0 WHERE default_maintainer=1').run();
 		db.prepare(
-			"UPDATE users SET display_name='Samuel Haskel', verified=1, is_admin=1, default_maintainer=1 WHERE id=?"
+			"UPDATE users SET display_name='Samuel Haskel', is_admin=1, default_maintainer=1 WHERE id=?"
 		).run(account.id);
 		db.prepare(
 			"UPDATE skills SET maintainer_id=? WHERE owner_id IN ('aps-curated-library', 'aps-example-library')"

@@ -1,21 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { unzipSync, zipSync } from 'fflate';
 import AxeBuilder from '@axe-core/playwright';
-import Database from 'better-sqlite3';
-import { join } from 'node:path';
 import { signIn } from './session';
-
-function verify(username: string) {
-	const db = new Database(join(process.env.E2E_DATA_DIR!, 'hub.sqlite'));
-	db.prepare('UPDATE users SET verified=1 WHERE username=?').run(username);
-	db.close();
-}
 
 const source =
 	'---\nname: browser-test-skill\ndescription: Explore HDF5 arrays and metadata with Python\nmetadata:\n  source-repository: https://github.com/AdvancedPhotonSource/lauelab\n---\n\n# Explore HDF5 data\n\nRead metadata before loading arrays.\n';
 const origin = 'http://127.0.0.1:4173';
 
-test('publish, discover, download, protect ownership, and revise a skill', async ({
+test('SSO users publish skills without approval, discover, download, protect ownership, and revise', async ({
 	page,
 	browser
 }) => {
@@ -26,7 +18,6 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	await expect(
 		page.getByRole('heading', { name: 'Find the skill for your next task.' })
 	).toBeVisible();
-	verify('owner');
 	await page.goto('/upload');
 	expect(
 		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
@@ -219,7 +210,7 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	await attacker.close();
 });
 
-test('MCP publishing, external provenance, discovery, and type-specific display', async ({
+test('SSO users publish MCPs without approval, with provenance, discovery, and type-specific display', async ({
 	page
 }) => {
 	await signIn(page.context(), 'mcp-owner', { displayName: 'MCP Owner' });
@@ -243,9 +234,6 @@ test('MCP publishing, external provenance, discovery, and type-specific display'
 	await page.getByLabel('Original author / organization').fill('XRF project');
 	await page.getByLabel('Original source URL').fill('https://example.org/xrf-mcp');
 	await page.getByLabel('APS use case').fill('Analyze maps collected at APS 2-ID-D.');
-	await page.getByRole('button', { name: 'Publish MCP', exact: true }).click();
-	await expect(page.getByRole('status')).toContainText('verify your account');
-	verify('mcp-owner');
 	await page.getByRole('button', { name: 'Publish MCP', exact: true }).click();
 	await expect(page).toHaveURL(/\/skills\/[a-f0-9-]+$/);
 	const path = new URL(page.url()).pathname;

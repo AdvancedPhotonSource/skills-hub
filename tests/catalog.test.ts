@@ -40,7 +40,6 @@ const pkg = () =>
 beforeAll(async () => {
 	alice = await register('alice', 'long-passphrase-for-alice', 'Alice');
 	bob = await register('bob', 'long-passphrase-for-bob', 'Bob');
-	db.prepare('UPDATE users SET verified=1 WHERE id IN (?, ?)').run(alice.id, bob.id);
 	skillId = publish(alice, pkg(), metadata);
 });
 afterAll(() => {
@@ -221,14 +220,19 @@ describe('imported revisions', () => {
 });
 
 describe('typed contributions and maintenance', () => {
-	it('requires verification even when the caller holds an older verified user object', async () => {
+	it('lets new accounts publish without verification while preserving ownership checks', async () => {
 		const newcomer = await register('newcomer', 'a-long-newcomer-passphrase', 'Newcomer');
-		expect(() => publish(newcomer, pkg(), metadata)).toThrow('verify your account');
-		db.prepare('UPDATE users SET verified=0 WHERE id=?').run(alice.id);
-		expect(() => publish(alice, pkg(), metadata, { id: skillId, expected: 2 })).toThrow(
-			'verify your account'
+		expect(newcomer.verified).toBe(false);
+		expect(newcomer.isAdmin).toBe(false);
+		const id = publish(newcomer, pkg(), metadata);
+		expect(getSkill(id).ownerId).toBe(newcomer.id);
+		expect(() => publish(newcomer, pkg(), metadata, { id: skillId, expected: 2 })).toThrow(
+			'Only the owner'
 		);
-		db.prepare('UPDATE users SET verified=1 WHERE id=?').run(alice.id);
+		deleteEntry(id, newcomer, 1);
+		expect(() => publish({ ...newcomer, id: 'missing-account' }, pkg(), metadata)).toThrow(
+			'Sign in to publish'
+		);
 	});
 	it('publishes an MCP without SKILL.md, filters facets, preserves snapshots, and deletes files completely', () => {
 		db.prepare('UPDATE users SET default_maintainer=1 WHERE id=?').run(alice.id);

@@ -50,6 +50,11 @@ test('every catalog surface is blocked server-side without an SSO session', asyn
 		form: { username: 'new-user', password: 'anything' }
 	});
 	expect(register.status()).toBe(403);
+	const publish = await request.post('/upload?/publish', {
+		headers: { origin: 'http://127.0.0.1:4173' },
+		form: { applicationType: 'mcp' }
+	});
+	expect(publish.status()).toBe(401);
 });
 
 test('JavaScript, local storage, and forged identity headers cannot grant access', async ({
@@ -94,6 +99,11 @@ for (const kind of ['local', 'expired'] as const) {
 		});
 		const response = await context.request.get('/api/v1/skills');
 		expect(response.status()).toBe(401);
+		const publish = await context.request.post('/upload?/publish', {
+			headers: { origin: 'http://127.0.0.1:4173' },
+			form: { applicationType: 'mcp' }
+		});
+		expect(publish.status()).toBe(401);
 	});
 }
 

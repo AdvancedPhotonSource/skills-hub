@@ -19,4 +19,5 @@ Sign in with your Argonne credentials; there is no separate Skills Hub password 
 All site content requires an authenticated SSO session, enforced on the server.
 
 A Hub profile linked to your Argonne identity tracks contributions and permissions.
-Publishing access is managed by the Hub administrator.
+Every SSO-signed-in user can publish skills and MCPs without administrator approval.
+Editing and deleting existing entries is restricted to their owners, maintainers, and administrators.

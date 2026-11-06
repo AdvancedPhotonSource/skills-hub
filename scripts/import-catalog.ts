@@ -25,7 +25,7 @@ try {
 	const account = db.prepare('SELECT id FROM users WHERE default_maintainer=1').get() as
 		{ id: string } | undefined;
 	const owner = account ? userById(account.id) : null;
-	if (!owner?.verified) throw new Error('Run npm run curate -- <maintainer username> first.');
+	if (!owner) throw new Error('Run npm run curate -- <maintainer username> first.');
 	for (const source of args.includes('--local-only') ? [] : starterCatalog) {
 		let snapshot;
 		for (const entry of source.skills) {
