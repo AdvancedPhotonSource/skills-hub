@@ -85,8 +85,8 @@
 			>{/if}
 		<p class="install-note">
 			{method === 'prompt'
-				? 'Your assistant needs access to this hub. You can also download the ZIP and attach it.'
-				: 'Requires Node.js 22.20+, your selected runner, and access to this hub and the npm registry.'}
+				? 'Your assistant needs an authenticated Argonne SSO session. Otherwise, download the ZIP here and attach it.'
+				: 'This URL requires an Argonne SSO session; command-line tools do not inherit your browser login. Download the ZIP here first if your tool cannot authenticate.'}
 		</p>
 	</div>
 	<div class="package-actions">
@@ -101,9 +101,9 @@
 <style>
 	.install-panel {
 		min-width: 0;
-		border: 1px solid #d7e2ef;
+		border: 1px solid var(--line);
 		border-radius: 14px;
-		background: #fff;
+		background: var(--paper);
 		box-shadow: 0 8px 28px #20395508;
 		padding: 22px;
 		border-top: 3px solid var(--argonne-blue);
@@ -135,7 +135,7 @@
 	.segmented {
 		display: flex;
 		padding: 4px;
-		background: #f1f4f8;
+		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: 9px;
 		gap: 4px;
@@ -149,12 +149,12 @@
 		padding: 8px;
 		border: 0;
 		background: transparent;
-		color: #53647c;
+		color: var(--muted);
 		font-size: 12px;
 		font-weight: 600;
 	}
 	.segmented button[aria-pressed='true'] {
-		background: #fff;
+		background: var(--paper);
 		color: var(--blue);
 		box-shadow: 0 1px 4px #20395518;
 	}
@@ -174,9 +174,9 @@
 	textarea {
 		width: 100%;
 		padding: 13px;
-		color: #315762;
-		background: #f2f8f8;
-		border-color: #d4e6e7;
+		color: light-dark(#315762, var(--text));
+		background: var(--surface);
+		border-color: var(--line);
 		font-family: ui-monospace, monospace;
 		font-size: 11px;
 		line-height: 1.8;
@@ -197,15 +197,15 @@
 		font:
 			11px ui-monospace,
 			monospace;
-		background: #fff;
-		border: 1px solid #dbe2ea;
-		color: #53647c;
+		background: var(--paper);
+		border: 1px solid var(--line);
+		color: var(--muted);
 		padding: 6px 12px;
 	}
 	.runners button[aria-pressed='true'] {
-		background: #eaf4f2;
-		color: #1d6658;
-		border-color: #7fb7aa;
+		background: light-dark(#eaf4f2, #193c31);
+		color: light-dark(#1d6658, var(--argonne-green));
+		border-color: light-dark(#7fb7aa, #365c4e);
 	}
 	.copy-button {
 		width: 100%;

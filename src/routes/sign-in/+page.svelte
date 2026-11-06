@@ -1,6 +1,6 @@
 <script lang="ts">
 	import AuthForm from '$lib/components/AuthForm.svelte';
-	let { form } = $props();
+	let { data } = $props();
 </script>
 
-<AuthForm {form} />
+<AuthForm entraEnabled={data.entraEnabled} ssoError={data.ssoError} />

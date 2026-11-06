@@ -14,6 +14,91 @@ export const starterCatalog: {
 	skills: CatalogSkill[];
 }[] = [
 	{
+		// OSTI's read-only mirror points to this upstream; pin the mirror's revision.
+		repository: 'AI-ModCon/genesis-skills',
+		commit: '70dce5aca946e2804f9b8579da01910cd2861858',
+		ref: 'main',
+		license: 'Repository LICENSE and NOTICE plus skill-specific licenses and attribution retained',
+		skills: [
+			...[
+				[
+					'aurora',
+					'Prepare a PBS job for our reconstruction workflow on ALCF Aurora, including GPU affinity and a small validation run.'
+				],
+				[
+					'frontier',
+					'Adapt our scientific analysis job for Frontier with its documented Slurm resources, programming environment, and storage.'
+				],
+				[
+					'pbs',
+					'Write a PBS job array for these detector datasets using our allocation and resource limits.'
+				],
+				[
+					'perlmutter',
+					'Prepare a Perlmutter Slurm job for our analysis workflow with the correct allocation and scratch paths.'
+				],
+				[
+					'slurm',
+					'Create a bounded Slurm job array for beamline data reduction and collect job status and accounting.'
+				]
+			].map(([name, example]) => ({
+				name,
+				directory: `skills/hpc-skills/${name}`,
+				categories: ['hpc'],
+				tags: ['alcf', 'genesis', 'hpc', name],
+				role: 'Researcher',
+				example
+			})),
+			...[
+				[
+					'agentic-vulnerabilities-scan',
+					'Assess our beamline assistant in an authorized sandbox using a bounded Promptfoo vulnerability scan.'
+				],
+				[
+					'ai-fingerprint',
+					'Profile our scientific AI assistant’s architecture and security boundaries before a safety review.'
+				],
+				[
+					'battleprint',
+					'Use our AI system fingerprint to analyze attack vectors and defenses for a scientific assistant.'
+				],
+				[
+					'fingerprinting',
+					'Classify this scientific ML repository and gather evidence for a follow-on safety assessment.'
+				],
+				[
+					'uncertainty-quantification',
+					'Assess calibration, out-of-distribution behavior, and uncertainty before using our model in experimental decisions.'
+				],
+				[
+					'uq-metrics-evaluator',
+					'Evaluate prediction accuracy and uncertainty calibration from our scientific model’s CSV outputs.'
+				]
+			].map(([name, example]) => ({
+				name,
+				directory: `skills/basesafe-skills/${name}`,
+				categories: ['machine-learning', 'agent-workflows'],
+				tags: ['alcf', 'genesis', 'safety', 'basesafe'],
+				role: 'Researcher',
+				example
+			})),
+			{
+				name: 'academy',
+				categories: ['agent-workflows', 'hpc'],
+				tags: ['alcf', 'genesis', 'hpc', 'academy'],
+				role: 'Software engineer',
+				example:
+					'Build an Academy workflow that coordinates scientific analysis agents and dispatches compute tasks to HPC resources.'
+			}
+		].map((entry) => ({
+			...entry,
+			provenance: 'argonne' as const,
+			contexts: ['alcf'],
+			sourceUrl: `https://gitlab.osti.gov/genesis/genesis-skills/-/tree/main/${'directory' in entry ? entry.directory.split('/').slice(0, 2).join('/') : 'skills/academy'}?ref_type=heads`,
+			upstreamAuthor: 'Genesis Skills contributors'
+		}))
+	},
+	{
 		repository: 'K-Dense-AI/scientific-agent-skills',
 		commit: '593377bb048752abb0152deab9fbb1083a6087df',
 		ref: 'main',
@@ -237,14 +322,15 @@ export function catalogMetadata(entry: CatalogSkill, repository?: string): Class
 		...entry,
 		applicationType: entry.applicationType || 'skill',
 		tags: entry.tags.filter((tag) => !['skill', 'mcp'].includes(tag)),
-		contexts: ['aps', ...entry.tags.filter((tag) => /^\d+-id-/.test(tag))],
+		contexts: entry.contexts || ['aps', ...entry.tags.filter((tag) => /^\d+-id-/.test(tag))],
 		techniques: [
 			...new Set(entry.tags.flatMap((tag) => (techniqueTags[tag] ? [techniqueTags[tag]] : [])))
 		],
 		provenance:
-			repository && !repository.startsWith('AdvancedPhotonSource/') ? 'external' : 'argonne',
-		sourceUrl: repository ? `https://github.com/${repository}` : '',
-		upstreamAuthor: repository?.split('/')[0] || '',
+			entry.provenance ||
+			(repository && !repository.startsWith('AdvancedPhotonSource/') ? 'external' : 'argonne'),
+		sourceUrl: entry.sourceUrl || (repository ? `https://github.com/${repository}` : ''),
+		upstreamAuthor: entry.upstreamAuthor || repository?.split('/')[0] || '',
 		relevance: entry.example || '',
 		mcp: entry.mcp || null
 	};

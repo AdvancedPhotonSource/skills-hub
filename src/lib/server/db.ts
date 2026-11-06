@@ -73,3 +73,48 @@ if ((db.pragma('user_version', { simple: true }) as number) < 3) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 4) {
+	db.transaction(() => {
+		db.exec(`
+			UPDATE skills SET maintainer_id = owner_id
+			WHERE maintainer_id IN (SELECT id FROM users WHERE default_maintainer = 1)
+			AND owner_id NOT IN ('aps-curated-library', 'aps-example-library');
+			PRAGMA user_version = 4;
+		`);
+	})();
+}
+
+if ((db.pragma('user_version', { simple: true }) as number) < 5) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE oidc_requests (
+				token_hash TEXT PRIMARY KEY, state TEXT NOT NULL, nonce TEXT NOT NULL,
+				verifier TEXT NOT NULL, redirect_uri TEXT NOT NULL, expires_at INTEGER NOT NULL
+			);
+			ALTER TABLE identities ADD COLUMN provider_username TEXT;
+			ALTER TABLE identities ADD COLUMN email TEXT;
+			PRAGMA user_version = 5;
+		`);
+	})();
+}
+
+if ((db.pragma('user_version', { simple: true }) as number) < 6) {
+	db.transaction(() => {
+		db.exec(`
+			ALTER TABLE oidc_requests ADD COLUMN link_user_id TEXT REFERENCES users(id);
+			ALTER TABLE oidc_requests ADD COLUMN link_session_hash TEXT;
+			PRAGMA user_version = 6;
+		`);
+	})();
+}
+
+if ((db.pragma('user_version', { simple: true }) as number) < 7) {
+	db.transaction(() => {
+		db.exec(`
+			ALTER TABLE sessions ADD COLUMN provider TEXT NOT NULL DEFAULT 'local'
+				CHECK (provider IN ('local', 'entra'));
+			PRAGMA user_version = 7;
+		`);
+	})();
+}

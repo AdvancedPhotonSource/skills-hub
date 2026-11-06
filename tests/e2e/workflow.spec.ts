@@ -3,6 +3,7 @@ import { unzipSync, zipSync } from 'fflate';
 import AxeBuilder from '@axe-core/playwright';
 import Database from 'better-sqlite3';
 import { join } from 'node:path';
+import { signIn } from './session';
 
 function verify(username: string) {
 	const db = new Database(join(process.env.E2E_DATA_DIR!, 'hub.sqlite'));
@@ -20,22 +21,11 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 }) => {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
+	await signIn(page.context(), 'owner', { displayName: 'Test Owner' });
 	await page.goto('/');
 	await expect(
 		page.getByRole('heading', { name: 'Find the skill for your next task.' })
 	).toBeVisible();
-	await page.getByRole('link', { name: 'Sign in', exact: true }).click();
-	await page.getByRole('link', { name: 'Create an account' }).click();
-	await expect(page).toHaveURL(/\/register$/);
-	expect(
-		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
-			.violations
-	).toEqual([]);
-	await page.getByLabel('Username', { exact: true }).fill('owner');
-	await page.getByLabel('Display name').fill('Test Owner');
-	await page.getByLabel('Password', { exact: true }).fill('a-good-long-test-passphrase');
-	await page.getByRole('button', { name: 'Create account' }).click();
-	await expect(page).toHaveURL(/\/my-skills$/);
 	verify('owner');
 	await page.goto('/upload');
 	expect(
@@ -106,6 +96,7 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	await page.screenshot({ path: 'test-results/skill-desktop.png', fullPage: true });
 
 	const guest = await browser.newContext();
+	await signIn(guest, 'catalog-reader');
 	const anonymous = await guest.newPage();
 	await anonymous.goto('/?q=HDF5&category=science');
 	await expect(anonymous.getByRole('link', { name: 'browser-test-skill' })).toBeVisible();
@@ -138,10 +129,7 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	).toBe(true);
 
 	const attacker = await browser.newContext();
-	await attacker.request.post('/register', {
-		headers: { origin },
-		form: { username: 'other-user', password: 'another-long-test-password' }
-	});
+	await signIn(attacker, 'other-user');
 	expect((await attacker.request.get(`${skillPath}/edit`)).status()).toBe(403);
 	const unauthorized = await attacker.request.post(`${skillPath}/edit?/publish`, {
 		headers: { origin },
@@ -223,17 +211,9 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 	expect((await guest.request.get(`${skillPath}/download?revision=1`)).status()).toBe(404);
 	await expect(page.getByRole('link', { name: 'browser-test-skill', exact: true })).toHaveCount(0);
 	await page.goto('/account');
-	await page.getByLabel('Current password').fill('a-good-long-test-passphrase');
-	await page.getByLabel('New password').fill('a-new-long-test-passphrase');
-	await page.getByRole('button', { name: 'Change password' }).click();
-	await expect(page.getByRole('status')).toContainText('Password changed');
+	await expect(page.getByText('owner@anl.gov', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-	await expect(page).toHaveURL(origin + '/');
-	await page.goto('/sign-in');
-	await page.getByLabel('Username', { exact: true }).fill('owner');
-	await page.getByLabel('Password', { exact: true }).fill('a-new-long-test-passphrase');
-	await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-	await expect(page).toHaveURL(/\/my-skills$/);
+	await expect(page).toHaveURL(/\/sign-in$/);
 	expect(errors).toEqual([]);
 	await guest.close();
 	await attacker.close();
@@ -242,14 +222,7 @@ test('publish, discover, download, protect ownership, and revise a skill', async
 test('MCP publishing, external provenance, discovery, and type-specific display', async ({
 	page
 }) => {
-	await page.request.post('/register', {
-		headers: { origin },
-		form: {
-			username: 'mcp-owner',
-			displayName: 'MCP Owner',
-			password: 'a-long-mcp-owner-passphrase'
-		}
-	});
+	await signIn(page.context(), 'mcp-owner', { displayName: 'MCP Owner' });
 	await page.goto('/upload');
 	await page.getByLabel('Application type').selectOption('mcp');
 	await page.getByLabel('Name', { exact: true }).fill('test-xrf-mcp');

@@ -1,10 +1,17 @@
 <script lang="ts">
 	import '../app.css';
+	import argonneLogo from '$lib/argonne-logo.svg?raw';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { Upload, Menu, X } from '@lucide/svelte';
+	import { Upload, Menu, X, Moon, Sun } from '@lucide/svelte';
+	import { onMount } from 'svelte';
+	import { setPreference } from '$lib/preferences';
 	let { data, children } = $props();
 	let menu = $state(false);
+	let dark = $state(false);
+	onMount(() => {
+		dark = document.documentElement.dataset.theme === 'dark';
+	});
 </script>
 
 <svelte:head
@@ -16,15 +23,21 @@
 <a class="skip-link" href="#main">Skip to content</a>
 <div class="institution">
 	<div class="shell">
-		<a href="https://www.anl.gov/" aria-label="Argonne National Laboratory"
-			><img
-				class="argonne-logo"
-				src={`${base}/argonne-logo.svg`}
-				alt="Argonne National Laboratory"
-				width="220"
-				height="60"
-			/></a
-		><span>Advanced Photon Source</span>
+		<a href="https://www.anl.gov/" aria-label="Argonne National Laboratory">{@html argonneLogo}</a>
+		<div class="institution-actions">
+			<span>Advanced Photon Source</span>
+			<button
+				class="icon-button"
+				aria-label="Dark mode"
+				aria-pressed={dark}
+				title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+				onclick={() => {
+					dark = !dark;
+					setPreference('theme', dark ? 'dark' : 'light');
+				}}
+				>{#if dark}<Sun size={18} />{:else}<Moon size={18} />{/if}</button
+			>
+		</div>
 	</div>
 </div>
 <header class="site-header">
@@ -40,21 +53,23 @@
 			>{#if menu}<X size={22} />{:else}<Menu size={22} />{/if}</button
 		>
 		<nav class:open={menu} aria-label="Main navigation">
-			{#each [['/', 'Explore'], ['/categories', 'Categories'], ['/saved', 'Saved']] as [path, label]}
-				<a
-					class:active={page.url.pathname === `${base}${path}`}
-					href={`${base}${path}`}
-					onclick={() => (menu = false)}>{label}</a
+			{#if data.user}
+				{#each [['/', 'Explore'], ['/categories', 'Categories'], ['/saved', 'Saved']] as [path, label]}
+					<a
+						class:active={page.url.pathname === `${base}${path}`}
+						href={`${base}${path}`}
+						onclick={() => (menu = false)}>{label}</a
+					>
+				{/each}
+				{#if data.user}<a
+						class:active={page.url.pathname === `${base}/my-skills`}
+						href={`${base}/my-skills`}
+						onclick={() => (menu = false)}>My contributions</a
+					>{/if}
+				<a class="button primary small" href={`${base}/upload`} onclick={() => (menu = false)}
+					><Upload size={15} /> Publish</a
 				>
-			{/each}
-			{#if data.user}<a
-					class:active={page.url.pathname === `${base}/my-skills`}
-					href={`${base}/my-skills`}
-					onclick={() => (menu = false)}>My contributions</a
-				>{/if}
-			<a class="button primary small" href={`${base}/upload`} onclick={() => (menu = false)}
-				><Upload size={15} /> Publish</a
-			>
+			{/if}
 			{#if data.user}
 				<a
 					class="account-link"
@@ -72,5 +87,7 @@
 <main id="main">{@render children()}</main>
 <footer class="site-footer shell">
 	<span>APS Skills Hub <span class="footer-divider">/</span> Built for shared expertise.</span>
-	<div><a href={`${base}/docs/api`}>API Docs</a><span>Argonne internal</span></div>
+	<div>
+		{#if data.user}<a href={`${base}/docs/api`}>API Docs</a>{/if}<span>Argonne internal</span>
+	</div>
 </footer>

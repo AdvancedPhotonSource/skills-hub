@@ -97,7 +97,7 @@
 
 <style>
 	.explorer {
-		background: #fafbfd;
+		background: var(--surface);
 		border-bottom: 1px solid var(--line);
 	}
 	summary {
@@ -112,11 +112,11 @@
 		gap: 9px;
 		align-items: center;
 		padding: 16px 20px;
-		color: #50617a;
+		color: var(--muted);
 		font-size: 12px;
 	}
 	.explorer-title > :global(svg:first-child) {
-		color: #a66b0c;
+		color: light-dark(#a66b0c, #edc477);
 	}
 	.explorer-title strong {
 		font-weight: 600;
@@ -146,7 +146,7 @@
 	.folder > ul {
 		padding-left: 20px;
 		margin-left: 14px;
-		border-left: 1px solid #e0e6ee;
+		border-left: 1px solid var(--line);
 	}
 	.folder > summary {
 		display: flex;
@@ -155,13 +155,13 @@
 		min-height: 35px;
 		padding: 5px 9px;
 		font-size: 12px;
-		color: #47566d;
+		color: light-dark(#47566d, var(--text));
 	}
 	.folder > summary > :global(svg:nth-child(2)) {
-		color: #b57b0d;
+		color: light-dark(#b57b0d, #edc477);
 	}
 	.folder > summary > :global(svg:first-child) {
-		color: #7b8796;
+		color: var(--muted);
 	}
 	a {
 		display: flex;
@@ -171,15 +171,15 @@
 		padding: 7px 11px;
 		border-radius: 6px;
 		font-size: 12px;
-		color: #42536d;
+		color: light-dark(#42536d, var(--text));
 	}
 	a:hover {
 		text-decoration: none;
-		background: #eef2f8;
+		background: var(--blue-light);
 	}
 	a.current {
-		background: #fff0e5;
-		color: #97431b;
+		background: light-dark(#fff0e5, #3b2e20);
+		color: light-dark(#97431b, #edc477);
 		box-shadow: inset 3px 0 #cf7848;
 	}
 	.filename {
@@ -188,25 +188,25 @@
 	.file-size {
 		margin-left: auto;
 		white-space: nowrap;
-		color: #56657a;
+		color: var(--muted);
 		font:
 			10px ui-monospace,
 			monospace;
 	}
 	.file-icon {
 		display: flex;
-		color: #67778a;
+		color: var(--muted);
 	}
 	.file-icon[data-kind='text'] {
-		color: #2a6dcc;
+		color: light-dark(#2a6dcc, var(--blue));
 	}
 	.file-icon[data-kind='code'] {
-		color: #1e8170;
+		color: light-dark(#1e8170, var(--argonne-green));
 	}
 	.file-icon[data-kind='config'] {
-		color: #9455ad;
+		color: light-dark(#9455ad, #d3a8ef);
 	}
 	.file-icon[data-kind='image'] {
-		color: #b24b70;
+		color: light-dark(#b24b70, #ffaac6);
 	}
 </style>

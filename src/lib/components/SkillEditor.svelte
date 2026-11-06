@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { Upload, FileText, ChevronRight, Check, Eye, GitBranch, RefreshCw } from '@lucide/svelte';
 	import { categories, roles, techniques } from '$lib/taxonomy';
 	import { onMount, untrack } from 'svelte';
@@ -420,8 +421,8 @@
 					: 'Upload SKILL.md or a ZIP with its supporting files.'}
 			</p>
 			<p>
-				Maintained by {skill?.maintainerName || 'Samuel Haskel'}. Publishing requires a verified
-				account.
+				Maintained by {skill?.maintainerName || page.data.user?.displayName}. Publishing requires a
+				verified account.
 			</p>
 		</aside>
 	</div>
@@ -478,7 +479,7 @@
 		justify-content: center;
 		width: 25px;
 		height: 25px;
-		background: #eaf1fb;
+		background: var(--blue-light);
 		color: var(--blue);
 		border-radius: 50%;
 		font-size: 11px;
@@ -489,9 +490,9 @@
 		margin: 0;
 	}
 	.upload-zone {
-		border: 1px dashed #b9cbe4;
+		border: 1px dashed var(--line);
 		border-radius: 8px;
-		background: #f8faff;
+		background: var(--surface);
 		padding: 26px;
 		display: flex;
 		flex-direction: column;
@@ -501,7 +502,7 @@
 		gap: 8px;
 	}
 	.upload-zone > label {
-		color: #3d5779;
+		color: light-dark(#3d5779, var(--text));
 		font-weight: 600;
 		font-size: 14px;
 	}
@@ -513,7 +514,7 @@
 	.upload-zone input {
 		color: var(--muted);
 		font-size: 12px;
-		background: white;
+		background: var(--paper);
 		max-width: 100%;
 		margin: 8px 0;
 	}
@@ -538,7 +539,7 @@
 	.category-picker summary {
 		cursor: pointer;
 		font-weight: 550;
-		color: #5d7089;
+		color: var(--muted);
 	}
 	.category-picker label {
 		display: flex;
@@ -567,7 +568,7 @@
 	}
 	.publishing-note h3 {
 		font-size: 13px;
-		color: #566e8d;
+		color: var(--muted);
 		margin: 14px 0 9px;
 	}
 	.publishing-note p {
@@ -576,8 +577,8 @@
 	}
 	.package-preview {
 		margin-top: 20px;
-		border: 1px solid #cddfce;
-		background: #f8fcf8;
+		border: 1px solid light-dark(#cddfce, #365c4e);
+		background: light-dark(#f8fcf8, #193c31);
 		border-radius: 7px;
 		padding: 18px;
 	}
@@ -586,21 +587,21 @@
 		align-items: center;
 		gap: 8px;
 		font-size: 13px;
-		color: #3a714b;
+		color: light-dark(#3a714b, var(--argonne-green));
 	}
 	.preview-heading > span {
 		margin-left: auto;
-		color: #728579;
+		color: var(--muted);
 		font-size: 11px;
 	}
 	.package-preview > p {
 		font-size: 12px;
 		margin: 10px 0;
-		color: #677c6d;
+		color: var(--muted);
 	}
 	.package-preview summary {
 		font-size: 12px;
-		color: #497454;
+		color: light-dark(#497454, var(--argonne-green));
 		cursor: pointer;
 	}
 	.package-preview .prose {
@@ -609,7 +610,7 @@
 	.package-preview ul {
 		padding: 10px 0 0;
 		list-style: none;
-		border-top: 1px solid #dce8dd;
+		border-top: 1px solid light-dark(#dce8dd, #365c4e);
 	}
 	.package-preview li {
 		display: flex;

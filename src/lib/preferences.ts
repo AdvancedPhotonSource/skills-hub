@@ -1,3 +1,12 @@
+export function setPreference(key: 'theme' | 'view', value: string) {
+	document.documentElement.dataset[key] = value;
+	try {
+		localStorage.setItem(`aps:${key}`, value);
+	} catch {
+		// Keep the preference for this page when browser storage is unavailable.
+	}
+}
+
 export function savedIds(): string[] {
 	try {
 		const value = JSON.parse(localStorage.getItem('aps:saved') || '[]');

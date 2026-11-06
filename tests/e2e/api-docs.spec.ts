@@ -1,9 +1,11 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { signIn } from './session';
 
 test('API docs link, runnable examples, formatted responses, and mobile access', async ({
 	page
 }) => {
+	await signIn(page.context(), 'api-reader');
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	const serverHtml = await (await page.request.get('/docs/api')).text();
@@ -44,7 +46,7 @@ test('API docs link, runnable examples, formatted responses, and mobile access',
 	);
 	await page.getByRole('button', { name: 'Python', exact: true }).click();
 	await expect(page.getByRole('region', { name: 'Python example', exact: true })).toContainText(
-		'from urllib.request import urlopen'
+		'from urllib.request import build_opener'
 	);
 	await page.getByRole('combobox', { name: 'Endpoint', exact: true }).selectOption('detail');
 	await page.getByLabel('Skill ID', { exact: true }).fill('missing-skill');

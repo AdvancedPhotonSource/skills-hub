@@ -20,13 +20,13 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		border: 1px solid #d7e2ef;
+		border: 1px solid var(--line);
 		border-top: 3px solid var(--argonne-blue);
 		border-radius: 14px;
-		background: #fff;
+		background: var(--paper);
 		box-shadow: 0 8px 28px #20395508;
 		padding: 22px;
-		color: #384e6e;
+		color: light-dark(#384e6e, var(--text));
 		min-width: 0;
 	}
 	.embedded {

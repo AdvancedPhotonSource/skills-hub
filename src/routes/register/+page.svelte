@@ -1,6 +1,1 @@
-<script lang="ts">
-	import AuthForm from '$lib/components/AuthForm.svelte';
-	let { form } = $props();
-</script>
-
-<AuthForm register {form} />
+<svelte:head><title>Sign in · APS Skills Hub</title></svelte:head>

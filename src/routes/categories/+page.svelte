@@ -46,7 +46,7 @@
 	.category-grid > section {
 		border: 1px solid var(--line);
 		border-top: 3px solid var(--tone);
-		background: linear-gradient(180deg, var(--tone-bg), #fff 115px);
+		background: linear-gradient(180deg, var(--tone-bg), var(--paper) 115px);
 		border-radius: 12px;
 		padding: 24px;
 	}

@@ -71,6 +71,12 @@ describe('accounts and ownership', () => {
 		expect(sessionUser(second)).toBeNull();
 		expect((await authenticate('bob', 'a-new-long-passphrase'))?.id).toBe(bob.id);
 	});
+	it('requires session-level SSO proof rather than a local session or linked user profile', () => {
+		const local = createSession(alice.id);
+		const sso = createSession(alice.id, 'entra');
+		expect(sessionUser(local, 'entra')).toBeNull();
+		expect(sessionUser(sso, 'entra')?.id).toBe(alice.id);
+	});
 	it('blocks anonymous and other-account edits before modifying files or metadata', () => {
 		expect(() => requireOwner(skillId, null)).toThrow('Sign in');
 		expect(() => publish(bob, pkg(), metadata, { id: skillId, expected: 1 })).toThrow(
@@ -247,11 +253,13 @@ describe('typed contributions and maintenance', () => {
 		const id = publish(bob, mcp, { ...metadata, ...details });
 		expect(getSkill(id)).toMatchObject({
 			ownerId: bob.id,
-			maintainerId: alice.id,
+			maintainerId: bob.id,
+			maintainerName: 'Bob',
 			applicationType: 'mcp',
 			mcp: { deployment: 'self-hosted', access: 'internal' }
 		});
-		expect(requireOwner(id, alice).id).toBe(id);
+		expect(() => requireOwner(id, alice)).toThrow('Only the owner');
+		expect(requireOwner(id, bob).id).toBe(id);
 		expect(
 			searchSkills(
 				new URLSearchParams({ type: 'mcp', context: 'aps', technique: 'xrf' })
@@ -288,9 +296,10 @@ describe('typed contributions and maintenance', () => {
 			'xrf-server/references/sources.md'
 		]);
 		expect(Buffer.from(archive['xrf-server/references/sources.md'])).toEqual(reference);
-		expect(() => deleteEntry(id, alice, 1)).toThrow('changed');
+		expect(getSkill(id).maintainerId).toBe(bob.id);
+		expect(() => deleteEntry(id, bob, 1)).toThrow('changed');
 		const latest = revisionFor(id);
-		deleteEntry(id, alice, 2);
+		deleteEntry(id, bob, 2);
 		expect(() => getSkill(id)).toThrow('not found');
 		expect(searchSkills(new URLSearchParams({ type: 'mcp' })).total).toBe(0);
 		expect(db.prepare('SELECT 1 FROM revisions WHERE skill_id=?').get(id)).toBeUndefined();

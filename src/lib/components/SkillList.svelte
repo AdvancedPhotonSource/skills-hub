@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { FileText, Plug, ArrowUpRight, Download } from '@lucide/svelte';
+	import { FileText, Plug, ArrowUpRight, Download, GitBranch, ExternalLink } from '@lucide/svelte';
 	import { categoryName, categoryTone, provenanceName } from '$lib/taxonomy';
+	import { repositoryUrl } from '$lib/source';
 	import type { Skill } from '$lib/types';
 	let { skills }: { skills: Skill[] } = $props();
 </script>
 
 <div class="skill-list">
 	{#each skills as skill}
+		{@const repository =
+			skill.mcp?.repository || skill.sourceUrl || (skill.source ? repositoryUrl(skill.source) : '')}
 		<article class="skill-row">
 			<div class="skill-icon tone" data-tone={categoryTone(skill.categories[0])}>
 				{#if skill.applicationType === 'mcp'}<Plug size={19} strokeWidth={1.6} />{:else}<FileText
@@ -35,6 +38,26 @@
 						>{/each}
 				</div>
 			</div>
+			{#if repository}
+				{@const directory = new URL(repository).pathname.match(/\/(?:-\/)?tree\/[^/]+\/(.+)/)?.[1]}
+				<a
+					class="card-repository"
+					href={repository}
+					target="_blank"
+					rel="noreferrer"
+					title={`Source repository: ${repository}`}
+				>
+					<GitBranch size={15} />
+					<span
+						>{directory ||
+							repository
+								.replace(/^https?:\/\//, '')
+								.replace(/^(github\.com|gitlab\.osti\.gov)\//, '')
+								.replace(/\/$/, '')}</span
+					>
+					<ExternalLink size={12} />
+				</a>
+			{/if}
 			<div class="skill-stats">
 				<span><Download size={12} />{skill.downloads}</span><time datetime={skill.updatedAt}
 					>{new Date(skill.updatedAt).toLocaleDateString('en-US', {
@@ -49,6 +72,81 @@
 </div>
 
 <style>
+	:global([data-view='grid']) .skill-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+		gap: 16px;
+		border: 0;
+	}
+	:global([data-view='grid']) .skill-row {
+		position: relative;
+		isolation: isolate;
+		flex-direction: column;
+		padding: 20px;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+	}
+	:global([data-view='grid']) .skill-name::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		border-radius: var(--radius);
+	}
+	:global([data-view='grid']) .skill-name:focus-visible::after {
+		outline: 2px solid var(--blue);
+		outline-offset: 3px;
+	}
+	:global([data-view='grid']) .skill-meta a,
+	:global([data-view='grid']) .card-repository {
+		position: relative;
+		z-index: 2;
+	}
+	:global([data-view='grid']) .card-repository {
+		display: flex;
+	}
+	.card-repository {
+		display: none;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+		padding: 8px 10px;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface);
+		color: var(--muted);
+		font-size: 11px;
+	}
+	.card-repository span {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.card-repository :global(svg) {
+		color: var(--blue);
+	}
+	.card-repository:hover {
+		background: var(--blue-light);
+		color: var(--blue);
+		text-decoration: none;
+	}
+	:global([data-view='grid']) .skill-icon {
+		display: none;
+	}
+	:global([data-view='grid']) .title-row {
+		flex-wrap: wrap;
+	}
+	:global([data-view='grid']) .skill-body p {
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+	}
+	:global([data-view='grid']) .skill-stats {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+	}
 	.skill-list {
 		border-top: 1px solid var(--line);
 	}
@@ -59,7 +157,7 @@
 		border-bottom: 1px solid var(--line);
 	}
 	.skill-row:hover {
-		background: #fafbfd;
+		background: var(--surface);
 	}
 	.skill-icon {
 		display: flex;
@@ -88,7 +186,7 @@
 		gap: 7px;
 		font-size: 16px;
 		font-weight: 650;
-		color: #273b57;
+		color: light-dark(#273b57, var(--text));
 		letter-spacing: -0.2px;
 		overflow-wrap: anywhere;
 	}
@@ -101,7 +199,7 @@
 	}
 	.skill-body p {
 		font-size: 13px;
-		color: #6b7788;
+		color: var(--muted);
 		line-height: 1.65;
 		margin: 6px 0 11px;
 		display: -webkit-box;
@@ -116,10 +214,10 @@
 		flex-wrap: wrap;
 		gap: 9px;
 		font-size: 11px;
-		color: #7d8897;
+		color: var(--muted);
 	}
 	.skill-meta > a {
-		color: #63738a;
+		color: var(--muted);
 	}
 	.skill-meta .category {
 		background: var(--tone-bg);
@@ -130,7 +228,7 @@
 	.meta-divider {
 		height: 12px;
 		width: 1px;
-		background: #dce2ea;
+		background: var(--line);
 		margin-inline: 3px;
 	}
 	.skill-stats {

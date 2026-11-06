@@ -1,7 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 424 116">
+<svg xmlns="http://www.w3.org/2000/svg" class="argonne-logo" role="img" viewBox="0 0 424 116">
 <title>Argonne National Laboratory</title>
-<!-- Official wordmark paths from www.anl.gov; anniversary lockup omitted. -->
-<path d="m360.19 57.89 17.37-30.07 17.36 30.07h-34.73z" fill="#fff"/>
+<!-- Official wordmark paths from www.anl.gov; theme supplied by app CSS. -->
 <path d="M362.16 55.43h-30.79l15.4 26.66 15.39-26.66z" fill="#007836"/>
 <path d="M392.95 55.43h-30.79l-15.39 26.66h61.58l-15.39-26.66Z" fill="#0082ca"/>
 <path d="M423.74 55.43h-30.79l15.4 26.66 15.39-26.66z" fill="#0b1f8f"/>

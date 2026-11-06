@@ -1,11 +1,26 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { Search, SlidersHorizontal, ArrowRight, Layers, X, Sparkles } from '@lucide/svelte';
+	import {
+		Search,
+		SlidersHorizontal,
+		ArrowRight,
+		Layers,
+		X,
+		Sparkles,
+		List,
+		Grid2X2
+	} from '@lucide/svelte';
+	import { onMount } from 'svelte';
+	import { setPreference } from '$lib/preferences';
 	import SkillList from '$lib/components/SkillList.svelte';
 	import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
 	import { categoryName, roles, techniques } from '$lib/taxonomy';
 	let { data } = $props();
 	let showFilters = $state(false);
+	let grid = $state(false);
+	onMount(() => {
+		grid = document.documentElement.dataset.view === 'grid';
+	});
 	const urlWith = (key: string, value: string) => {
 		const params = new URLSearchParams(data.filters);
 		params.delete('page');
@@ -210,6 +225,28 @@
 				</p>
 			</div>
 			<div class="result-actions">
+				<div class="view-switch" role="group" aria-label="Catalog view">
+					<button
+						class="icon-button"
+						aria-label="List view"
+						title="List view"
+						aria-pressed={!grid}
+						onclick={() => {
+							grid = false;
+							setPreference('view', 'list');
+						}}><List size={17} /></button
+					>
+					<button
+						class="icon-button"
+						aria-label="Grid view"
+						title="Grid view"
+						aria-pressed={grid}
+						onclick={() => {
+							grid = true;
+							setPreference('view', 'grid');
+						}}><Grid2X2 size={17} /></button
+					>
+				</div>
 				<button
 					class="button small filter-toggle"
 					aria-expanded={showFilters}
@@ -281,6 +318,15 @@
 </div>
 
 <style>
+	.view-switch {
+		display: flex;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+	}
+	.view-switch [aria-pressed='true'] {
+		background: var(--blue-light);
+		color: var(--blue);
+	}
 	.type-filter {
 		display: flex;
 		gap: 8px;
@@ -296,7 +342,7 @@
 		color: var(--muted);
 	}
 	.hero {
-		background: linear-gradient(110deg, #f7faff 0%, #f9fbfe 65%, #f0f5fd 100%);
+		background: linear-gradient(110deg, var(--surface), var(--paper));
 		border-bottom: 1px solid var(--line);
 	}
 	.hero-inner {
@@ -323,7 +369,7 @@
 		line-height: 1.15;
 	}
 	.hero-copy > p {
-		color: #758095;
+		color: var(--muted);
 		font-size: 14px;
 		line-height: 1.8;
 		margin-bottom: 25px;
@@ -332,8 +378,8 @@
 		display: flex;
 		gap: 12px;
 		align-items: center;
-		background: white;
-		border: 1px solid #d0dcea;
+		background: var(--paper);
+		border: 1px solid var(--line);
 		border-radius: 8px;
 		padding: 7px 8px 7px 17px;
 		box-shadow: 0 3px 9px #263d6810;
@@ -358,7 +404,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--blue);
+		background: light-dark(var(--blue), #006da8);
 		border: 0;
 		color: white;
 		width: 38px;
@@ -370,17 +416,17 @@
 		align-items: center;
 		font-size: 11px;
 		margin-top: 13px;
-		color: #8895a7;
+		color: var(--muted);
 	}
 	.suggestions > a {
-		background: #eaf0f8;
+		background: var(--surface);
 		border-radius: 4px;
 		padding: 2px 9px;
 		color: var(--muted);
 	}
 	.hero-note {
 		max-width: 270px;
-		border-left: 1px solid #dce5f1;
+		border-left: 1px solid var(--line);
 		padding-left: 34px;
 		margin-right: 30px;
 	}
@@ -390,14 +436,14 @@
 	}
 	.hero-note h2 {
 		font-size: 20px;
-		color: #405878;
+		color: light-dark(#405878, var(--text));
 		letter-spacing: -0.4px;
 		line-height: 1.4;
 	}
 	.hero-note p {
 		font-size: 12px;
 		line-height: 1.8;
-		color: #8190a5;
+		color: var(--muted);
 	}
 	.hero-note a {
 		font-size: 12px;
@@ -421,7 +467,7 @@
 	}
 	.filter-title h2 {
 		font-size: 13px;
-		color: #3d4c60;
+		color: var(--text);
 		letter-spacing: 0;
 		margin: 0;
 	}
@@ -443,17 +489,17 @@
 		text-align: center;
 	}
 	.category-link.selected {
-		background: #edf3fd;
-		color: #245faf;
+		background: var(--blue-light);
+		color: var(--blue);
 		font-weight: 600;
 	}
 	.category-link:hover {
 		text-decoration: none;
-		background: #f3f6fa;
+		background: var(--surface);
 	}
 	.subcategories {
 		padding-left: 12px;
-		border-left: 1px solid #dce6f4;
+		border-left: 1px solid var(--line);
 		margin: 6px 0;
 	}
 	.subcategories > a {
@@ -498,7 +544,7 @@
 	.contribute h3 {
 		font-size: 12px;
 		line-height: 1.7;
-		color: #52647e;
+		color: var(--muted);
 		margin: 9px 0;
 	}
 	.contribute p {
@@ -538,7 +584,7 @@
 		font-size: 11px;
 		border-color: var(--line);
 		padding: 8px;
-		background: #fff;
+		background: var(--paper);
 	}
 	.filter-toggle {
 		display: none;

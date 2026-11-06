@@ -40,7 +40,7 @@
 	.panel {
 		margin-top: 12px;
 		padding: 18px;
-		background: white;
+		background: var(--paper);
 		border: 1px solid var(--line);
 		border-radius: var(--radius);
 	}

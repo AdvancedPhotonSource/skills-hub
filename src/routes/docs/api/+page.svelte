@@ -35,10 +35,10 @@
 	const requestUrl = $derived(`${root}${requestPath}`);
 	const exampleCode = $derived(
 		language === 'cURL'
-			? `curl --fail-with-body --silent --show-error ${JSON.stringify(requestUrl)} \\\n  -H "Accept: application/json"`
+			? `curl --fail-with-body --silent --show-error --cookie "$HUB_COOKIE_JAR" ${JSON.stringify(requestUrl)} \\\n  -H "Accept: application/json"`
 			: language === 'JavaScript'
-				? `const response = await fetch(${JSON.stringify(requestUrl)});\nif (!response.ok) throw new Error(\`HTTP \${response.status}\`);\nconst data = await response.json();\nconsole.log(data);`
-				: `import json\nfrom urllib.request import urlopen\n\nwith urlopen(${JSON.stringify(requestUrl)}, timeout=15) as response:\n    data = json.load(response)\nprint(json.dumps(data, indent=2))`
+				? `// Run in the signed-in Hub browser session.\nconst response = await fetch(${JSON.stringify(requestUrl)}, { credentials: 'same-origin' });\nif (!response.ok) throw new Error(\`HTTP \${response.status}\`);\nconst data = await response.json();\nconsole.log(data);`
+				: `import json, os\nfrom http.cookiejar import MozillaCookieJar\nfrom urllib.request import build_opener, HTTPCookieProcessor\n\ncookies = MozillaCookieJar(os.environ["HUB_COOKIE_JAR"])\ncookies.load()\nopener = build_opener(HTTPCookieProcessor(cookies))\nwith opener.open(${JSON.stringify(requestUrl)}, timeout=15) as response:\n    data = json.load(response)\nprint(json.dumps(data, indent=2))`
 	);
 	let loading = $state(false);
 	let responseText = $state('');
@@ -125,7 +125,7 @@
 	];
 	const exampleId = $derived(data.exampleId || 'SKILL_ID');
 	const downloadCode = $derived(
-		`curl --fail --location "${root}/skills/${exampleId}/download?revision=1" \\\n  --output skill-r1.zip`
+		`curl --fail --location --cookie "$HUB_COOKIE_JAR" "${root}/skills/${exampleId}/download?revision=1" \\\n  --output skill-r1.zip`
 	);
 </script>
 
@@ -170,7 +170,14 @@
 			<h2>A small, read-only REST API</h2>
 			<p>
 				The API serves the same local catalog as the website. Search, details, and categories return
-				JSON. No account, API key, or authorization header is required for these reads.
+				JSON. Every request requires a server-validated Argonne SSO session. Requests without one
+				return HTTP 401. Local passwords and browser-side state cannot grant access.
+			</p>
+			<p>
+				The playground uses your signed-in browser session. Command-line examples require an
+				authenticated cookie jar supplied locally through <code>HUB_COOKIE_JAR</code>; they do not
+				inherit your browser login. Keep session credentials private. You can also use browser
+				downloads.
 			</p>
 			<div class="overview-cards">
 				<div>
@@ -430,7 +437,9 @@
 		<section id="errors">
 			<div class="section-kicker">04 / Integration notes</div>
 			<h2>Errors & behavior</h2>
-			<p>A missing or archived skill returns HTTP 404 from the public detail endpoint:</p>
+			<p>
+				After authentication, a missing or archived skill returns HTTP 404 from the detail endpoint:
+			</p>
 			<CodeBlock
 				label="Detail error response · HTTP 404"
 				code={'{\n  "error": "Skill not found."\n}'}
@@ -457,7 +466,7 @@
 				</li>
 				<li>
 					Publishing and account management use the website’s authenticated forms. This reference
-					describes the public read API.
+					describes the authenticated read API.
 				</li>
 			</ul>
 		</section>
@@ -466,7 +475,7 @@
 
 <style>
 	.docs-hero {
-		background: linear-gradient(115deg, #f2f7ff, #f6f2fb);
+		background: linear-gradient(115deg, var(--blue-light), var(--surface));
 		border-bottom: 1px solid var(--line);
 		padding: 48px 0;
 	}
@@ -501,7 +510,7 @@
 		font-size: 12px;
 	}
 	.docs-nav strong {
-		color: #384e6e;
+		color: light-dark(#384e6e, var(--text));
 		margin-bottom: 10px;
 	}
 	.docs-nav a {
@@ -528,7 +537,7 @@
 		padding-top: 32px;
 	}
 	.section-kicker {
-		color: #70429c;
+		color: light-dark(#70429c, #d3a8ef);
 		font:
 			11px ui-monospace,
 			monospace;
@@ -546,7 +555,7 @@
 	li {
 		font-size: 14px;
 		line-height: 1.85;
-		color: #52647d;
+		color: var(--muted);
 	}
 	li + li {
 		margin-top: 12px;
@@ -558,8 +567,8 @@
 	}
 	p code,
 	td code {
-		color: #304d70;
-		background: #eff4fa;
+		color: light-dark(#304d70, var(--text));
+		background: var(--surface);
 		padding: 2px 4px;
 		border-radius: 4px;
 	}
@@ -571,12 +580,12 @@
 	}
 	.overview-cards > div {
 		border: 1px solid var(--line);
-		background: #f8fafd;
+		background: var(--surface);
 		border-radius: 10px;
 		padding: 20px;
 	}
 	.overview-cards :global(svg) {
-		color: #226a5a;
+		color: light-dark(#226a5a, var(--argonne-green));
 	}
 	.overview-cards h3 {
 		margin-top: 10px;
@@ -595,13 +604,13 @@
 		align-items: center;
 		gap: 16px;
 		padding: 16px 20px;
-		color: #304d70;
+		color: light-dark(#304d70, var(--text));
 	}
 	.endpoint-list a + a {
 		border-top: 1px solid var(--line);
 	}
 	.endpoint-list a:hover {
-		background: #f8fafd;
+		background: var(--surface);
 		text-decoration: none;
 	}
 	.endpoint-list small {
@@ -620,8 +629,8 @@
 			600 10px ui-monospace,
 			monospace;
 		border-radius: 5px;
-		background: #eaf5f0;
-		color: #226a5a;
+		background: light-dark(#eaf5f0, #193c31);
+		color: light-dark(#226a5a, var(--argonne-green));
 		padding: 6px 9px;
 		flex-shrink: 0;
 	}
@@ -636,7 +645,7 @@
 	}
 	.route {
 		display: block;
-		color: #53647c;
+		color: var(--muted);
 		margin-bottom: 16px;
 		font-size: 13px;
 	}
@@ -653,8 +662,8 @@
 	}
 	th {
 		text-align: left;
-		background: #f3f6fb;
-		color: #3c5271;
+		background: var(--surface);
+		color: light-dark(#3c5271, var(--text));
 		font-weight: 600;
 	}
 	td,
@@ -664,7 +673,7 @@
 	}
 	td {
 		border-top: 1px solid var(--line);
-		color: #52647d;
+		color: var(--muted);
 	}
 	td:first-child {
 		min-width: 120px;
@@ -680,11 +689,11 @@
 		font-size: 13px;
 	}
 	.playground {
-		border: 1px solid #dce1f0;
+		border: 1px solid var(--line);
 		border-top: 3px solid #7859b3;
 		border-radius: 12px;
 		padding: 24px;
-		background: #fafbfe;
+		background: var(--surface);
 	}
 	.request-fields {
 		display: grid;
@@ -696,7 +705,7 @@
 		flex-direction: column;
 		gap: 7px;
 		font-size: 12px;
-		color: #384e6e;
+		color: light-dark(#384e6e, var(--text));
 	}
 	label span {
 		display: contents;
@@ -717,7 +726,7 @@
 		flex: 1;
 		min-width: 0;
 		font-size: 11px;
-		color: #53647c;
+		color: var(--muted);
 	}
 	.request-bar button {
 		flex-shrink: 0;
@@ -730,14 +739,14 @@
 	.language-picker button {
 		padding: 6px 12px;
 		font-size: 12px;
-		color: #53647c;
-		background: #fff;
-		border: 1px solid #dbe2ea;
+		color: var(--muted);
+		background: var(--paper);
+		border: 1px solid var(--line);
 	}
 	.language-picker button[aria-pressed='true'] {
-		color: #6943a0;
-		background: #f1eafa;
-		border-color: #c8b4e0;
+		color: light-dark(#6943a0, #d3a8ef);
+		background: light-dark(#f1eafa, #352a46);
+		border-color: light-dark(#c8b4e0, #655080);
 	}
 	.response-heading {
 		display: flex;
@@ -749,12 +758,12 @@
 		margin: 0;
 	}
 	.response-heading .badge {
-		color: #226a5a;
-		background: #eaf5f0;
+		color: light-dark(#226a5a, var(--argonne-green));
+		background: light-dark(#eaf5f0, #193c31);
 	}
 	.response-heading .failed {
-		color: #973746;
-		background: #fceef0;
+		color: light-dark(#973746, #ffaaaa);
+		background: light-dark(#fceef0, #422a31);
 	}
 	.response-url {
 		font-size: 11px;

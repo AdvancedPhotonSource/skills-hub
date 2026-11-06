@@ -15,7 +15,8 @@ export type RepositorySnapshot = {
 
 // Only immutable snapshots are cached. Branches are resolved again on every refresh.
 const snapshots = new Map<string, RepositorySnapshot>();
-const legalName = /^(license|licence|copying|notice|third[_-]party[_-]notices)([._-].*)?$/i;
+const legalName =
+	/^(license|licence|copying|notice|attribution|third[_-]party[_-]notices)([._-].*)?$/i;
 const encodePath = (path: string) => path.split('/').map(encodeURIComponent).join('/');
 
 export function parseRepository(input: string, ref = '') {

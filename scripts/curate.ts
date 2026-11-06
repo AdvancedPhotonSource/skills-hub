@@ -37,7 +37,9 @@ try {
 		db.prepare(
 			"UPDATE users SET display_name='Samuel Haskel', verified=1, is_admin=1, default_maintainer=1 WHERE id=?"
 		).run(account.id);
-		db.prepare('UPDATE skills SET maintainer_id=?').run(account.id);
+		db.prepare(
+			"UPDATE skills SET maintainer_id=? WHERE owner_id IN ('aps-curated-library', 'aps-example-library')"
+		).run(account.id);
 	})();
 	const maintainer = userById(account.id)!;
 	const definitions = new Map([

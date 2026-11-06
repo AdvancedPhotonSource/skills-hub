@@ -264,8 +264,6 @@ export function publish(
 		const normalized = mcpPackage(pkg.name, pkg.description, details.mcp!.instructions, pkg.files);
 		pkg = { ...pkg, files: normalized.files, content: normalized.content };
 	}
-	const maintainer = db.prepare('SELECT id FROM users WHERE default_maintainer = 1').get() as
-		{ id: string } | undefined;
 	if (existing && existing.name !== pkg.name)
 		throw new HubError('Keep the existing skill name when publishing a revision.');
 	const id = existing?.id || randomUUID();
@@ -330,7 +328,7 @@ export function publish(
 					pkg.compatibility,
 					now,
 					meta.example || '',
-					maintainer?.id || user.id
+					user.id
 				);
 			}
 			db.prepare('UPDATE skills SET details=? WHERE id=?').run(JSON.stringify(details), id);

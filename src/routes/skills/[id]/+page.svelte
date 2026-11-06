@@ -298,16 +298,16 @@
 	}
 	.example-task {
 		margin-top: 23px;
-		border: 1px solid #d7e8e4;
+		border: 1px solid light-dark(#d7e8e4, #365c4e);
 		border-left: 3px solid #4b9584;
-		background: #f4faf8;
+		background: light-dark(#f4faf8, #193c31);
 		border-radius: 0 9px 9px 0;
 		padding: 13px 18px;
 		max-width: 800px;
 	}
 	.example-task strong {
 		font-size: 12px;
-		color: #276457;
+		color: light-dark(#276457, var(--argonne-green));
 	}
 	.example-task p {
 		font-size: 13px;
@@ -361,7 +361,7 @@
 		margin: 23px 0 6px;
 	}
 	.attribution > a {
-		color: #5d7392;
+		color: var(--muted);
 	}
 	.attribution .avatar {
 		width: 23px;
@@ -425,8 +425,8 @@
 		color: var(--muted);
 	}
 	.file-toolbar a.chosen {
-		color: #175ac6;
-		background: #eaf1fd;
+		color: var(--blue);
+		background: var(--blue-light);
 		border-radius: 4px;
 	}
 	.file-toolbar a {

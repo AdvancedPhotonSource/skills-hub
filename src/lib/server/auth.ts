@@ -67,23 +67,23 @@ export async function authenticate(username: string, password: string) {
 	return valid && row && password.length <= 128 ? userById(row.user_id) : null;
 }
 
-export function createSession(userId: string) {
+export function createSession(userId: string, provider: 'local' | 'entra' = 'local') {
 	const token = randomBytes(32).toString('base64url');
 	db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(Date.now());
-	db.prepare('INSERT INTO sessions VALUES (?, ?, ?)').run(
-		digest(token),
-		userId,
-		Date.now() + sessionLifetime * 1000
-	);
+	db.prepare(
+		'INSERT INTO sessions (token_hash, user_id, expires_at, provider) VALUES (?, ?, ?, ?)'
+	).run(digest(token), userId, Date.now() + sessionLifetime * 1000, provider);
 	return token;
 }
 
-export function sessionUser(token: string | undefined) {
+export function sessionUser(token: string | undefined, requiredProvider?: 'entra') {
 	if (!token || token.length > 100) return null;
 	const row = db
-		.prepare('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?')
-		.get(digest(token), Date.now()) as { user_id: string } | undefined;
-	return row ? userById(row.user_id) : null;
+		.prepare('SELECT user_id, provider FROM sessions WHERE token_hash = ? AND expires_at > ?')
+		.get(digest(token), Date.now()) as { user_id: string; provider: string } | undefined;
+	return row && (!requiredProvider || row.provider === requiredProvider)
+		? userById(row.user_id)
+		: null;
 }
 
 export function revokeSession(token: string | undefined) {
