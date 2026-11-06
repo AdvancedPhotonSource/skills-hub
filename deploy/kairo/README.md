@@ -2,7 +2,7 @@
 
 Live URL: **https://kairo.aps.anl.gov:8443** — Argonne networks and VPN.
 
-## SSO deployed — 2026-11-06
+## SSO-only access deployed — 2026-11-06
 
 **Current access policy:** every catalog page, API route, file, and download
 requires a session created by a validated Entra callback. The server checks this
@@ -11,6 +11,25 @@ and the assets needed to display sign-in are public. Local-password login and
 registration are disabled, including when Entra configuration is missing.
 Migration 7 labels legacy sessions as local, requiring one fresh SSO sign-in;
 linked identities and existing ownership remain intact.
+
+Release `sso-required-ad9f8f7` was activated at **21:51 UTC**, from commit
+`ad9f8f7b292276262ae5a37848b182c3103f4877`. Pre-cutover data and the deployment
+record are in `incoming/sso-required-ad9f8f7-cutover/`. A post-deployment backup
+also completed successfully.
+
+Verification passed: all 48 unit tests, type checking, formatting, backup tests,
+production builds on macOS and Kairo ARM64, and 10 browser tests. Staging verified
+that legacy sessions fail while SSO-origin sessions succeed. External HTTPS checks
+confirmed 19 protected surfaces return 401 without SSO, including API, file,
+download, discovery, and Svelte data routes. Browser navigation redirects to sign-in
+with JavaScript disabled; forged credentials and local-password login are rejected.
+
+The linked Argonne account was preserved, along with both users and all 31 catalog
+entries. Discovery revision 3 documents authenticated access; there are now 35
+revisions and 295 verified package files. The temporary staging service/data were
+removed. Users must sign in through Argonne once to replace legacy sessions.
+
+### Initial SSO deployment
 
 The SSO release was activated at **21:23 UTC** from
 `releases/sso-20261106T211928Z`, replacing `preview-20261106-logo-final`.
@@ -68,9 +87,8 @@ test accounts are absent from the production database.
 ## Runtime and files
 
 - Base directory: `/local/haskels/skills-hub/`
-- Release: `current` → `releases/sso-20261106T211928Z`
-- Source base commit: `0ff0066687bbeae9811cd67472a755e89d4555ba`, with the
-  working-tree source snapshot recorded in `SOURCE-MANIFEST.json`
+- Release: `current` → `releases/sso-required-ad9f8f7`
+- Source commit: `ad9f8f7b292276262ae5a37848b182c3103f4877`
 - Runtime: `runtime/node/bin/node` (Node 24.22.2, Linux ARM64)
 - HTTPS proxy: `runtime/caddy` (Caddy 2.11.9, Linux ARM64)
 - Database/packages: `data/` on local XFS, not NFS
