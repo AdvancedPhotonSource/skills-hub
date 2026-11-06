@@ -222,10 +222,37 @@ test('SSO users publish MCPs without approval, with provenance, discovery, and t
 	await page.getByLabel('Deployment', { exact: true }).selectOption('self-hosted');
 	await page.getByLabel('Access', { exact: true }).selectOption('internal');
 	await page.getByLabel('Transport', { exact: true }).selectOption('stdio');
+	await expect(page.getByLabel('Description', { exact: true })).toHaveValue(
+		'Analyze XRF maps at APS 2-ID-D.'
+	);
+	expect(
+		JSON.parse(await page.getByLabel('Client configuration example').inputValue())
+	).toMatchObject({
+		mcpServers: { 'test-xrf-mcp': { command: '/absolute/path/to/server-command', args: [] } }
+	});
+	await expect(page.getByLabel('Connection / deployment instructions')).toHaveValue(
+		/It launches the server process over stdio/
+	);
+	await page
+		.getByLabel('Authentication requirements')
+		.fill('No authentication is required for this local server.');
+	await page
+		.getByLabel('Tools and capabilities')
+		.fill('inspect_map: accepts a file path and returns XRF metadata.');
 	await page
 		.getByLabel('Connection / deployment instructions')
 		.fill('Install the package in your analysis environment and configure the client.');
 	await page.getByLabel('Client configuration example').fill('{"command":"xrf-mcp"}');
+	await page.getByRole('button', { name: 'Publish MCP', exact: true }).click();
+	await expect(
+		page.getByRole('status').filter({ hasText: 'Choose between one and five categories.' })
+	).toBeVisible();
+	await expect(page.getByLabel('Client configuration example')).toHaveValue(
+		'{"command":"xrf-mcp"}'
+	);
+	await expect(page.getByLabel('Tools and capabilities')).toHaveValue(
+		'inspect_map: accepts a file path and returns XRF metadata.'
+	);
 	await page.locator('summary').filter({ hasText: 'Scientific data & analysis' }).click();
 	await page.getByLabel('Data reduction', { exact: true }).check();
 	await page.getByLabel('Facility / beamline').fill('aps, 2-id-d');
@@ -250,6 +277,12 @@ test('SSO users publish MCPs without approval, with provenance, discovery, and t
 	});
 	expect(result.revision.files.map((file: { path: string }) => file.path)).toEqual(['README.md']);
 	await page.getByRole('link', { name: 'Manage MCP', exact: true }).click();
+	await expect(page.getByLabel('Connection / deployment instructions')).toHaveValue(
+		'Install the package in your analysis environment and configure the client.'
+	);
+	await expect(page.getByLabel('Client configuration example')).toHaveValue(
+		'{"command":"xrf-mcp"}'
+	);
 	await page
 		.getByLabel('Connection / deployment instructions')
 		.fill('Use the configured XRF environment and run xrf-mcp.');
@@ -286,4 +319,58 @@ test('SSO users publish MCPs without approval, with provenance, discovery, and t
 		).toString()
 	).toContain('name: aps-hub-discovery');
 	expect((await page.request.get('/discovery/SKILL.md')).ok()).toBe(true);
+});
+
+test('MCP templates are prefilled and configuration changes immediately with transport', async ({
+	page
+}) => {
+	await signIn(page.context(), 'mcp-template-author');
+	await page.goto('/upload');
+	await page.getByLabel('Application type').selectOption('mcp');
+	const instructions = page.getByLabel('Connection / deployment instructions');
+	const configuration = page.getByLabel('Client configuration example');
+	await expect(page.getByText('Start with an editable template')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: /template/i })).toHaveCount(0);
+	await expect(configuration).toHaveValue('');
+	await expect(page.getByLabel('Description', { exact: true })).toHaveValue(/An MCP server for/);
+	await expect(page.getByLabel('Authentication requirements')).toHaveValue(/Authentication method/);
+	await expect(page.getByLabel('Tools and capabilities')).toHaveValue(/\[tool_name\]/);
+	await expect(instructions).toHaveValue(/## Prerequisites/);
+	await page.getByLabel('Name', { exact: true }).fill('template-mcp');
+	await page.getByLabel('Hosted endpoint (if available)').fill('https://example.org/custom/mcp');
+	await page.getByLabel('Deployment', { exact: true }).selectOption('hosted');
+	await page.getByLabel('Transport', { exact: true }).selectOption('http');
+	await expect(page).toHaveURL(/\/upload$/);
+	expect(JSON.parse(await configuration.inputValue())).toEqual({
+		mcpServers: { 'template-mcp': { type: 'http', url: 'https://example.org/custom/mcp' } }
+	});
+	await expect(instructions).toHaveValue(/Streamable HTTP/);
+	await expect(instructions).not.toHaveValue(/## Deploy the server/);
+	await page.getByLabel('Deployment', { exact: true }).selectOption('self-hosted');
+	await expect(instructions).toHaveValue(/## Deploy the server/);
+	await instructions.fill('My existing connection instructions.');
+	await configuration.fill('{"custom":"edited config"}');
+	await page.getByLabel('Transport', { exact: true }).selectOption('sse');
+	await expect(instructions).toHaveValue('My existing connection instructions.');
+	await expect(configuration).toHaveValue(/"type": "sse"/);
+	await page.getByLabel('Transport', { exact: true }).selectOption('stdio');
+	await expect(configuration).toHaveValue(/"command":/);
+	await expect(configuration).not.toHaveValue(/"url":/);
+	await page.getByLabel('Transport', { exact: true }).selectOption('unknown');
+	await expect(configuration).toHaveValue('');
+	await page.getByLabel('Transport', { exact: true }).selectOption('http');
+	await expect(configuration).toHaveValue(/"type": "http"/);
+	await configuration.fill('{"custom":"editable again"}');
+	await page.getByLabel('Name', { exact: true }).fill('renamed-mcp');
+	await expect(configuration).toHaveValue('{"custom":"editable again"}');
+	for (const width of [1280, 390]) {
+		await page.setViewportSize({ width, height: 844 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+			true
+		);
+		expect(
+			(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+				.violations
+		).toEqual([]);
+	}
 });
