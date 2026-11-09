@@ -29,6 +29,10 @@
 				</div>
 				<p>{skill.description}</p>
 				<div class="skill-meta">
+					{#if skill.ownerId !== skill.maintainerId}<a
+							href={`${base}/?author=${encodeURIComponent(skill.username)}`}
+							>Owned by {skill.displayName}</a
+						><span class="meta-divider"></span>{/if}
 					<a href={`${base}/?author=${encodeURIComponent(skill.maintainerUsername)}`}
 						>Maintained by {skill.maintainerName}</a
 					><span class="meta-divider"></span>{#each skill.categories.slice(0, 2) as category}<a

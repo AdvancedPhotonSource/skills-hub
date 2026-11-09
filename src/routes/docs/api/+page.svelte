@@ -72,7 +72,11 @@
 			'skill | mcp',
 			'Application type. MCP records include connection and deployment metadata.'
 		],
-		['context', 'string', 'One facility or beamline, such as aps or 2-id-d.'],
+		[
+			'context',
+			'string',
+			'One predefined facility, beamline, or endstation, such as aps or 2-id-d. Legacy spellings such as 2IDD are normalized.'
+		],
 		[
 			'technique',
 			'string',

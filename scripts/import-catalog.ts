@@ -7,6 +7,9 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { starterCatalog, localSkills, catalogMetadata, type CatalogSkill } from './catalog';
+import { catalogOwnership } from './catalog-owners';
+import { catalogOwner, assignCatalogOwner } from './catalog-owner';
+import { parseArgs } from 'node:util';
 
 function metadata(entry: CatalogSkill, repository?: string) {
 	const form = new FormData();
@@ -17,25 +20,37 @@ function metadata(entry: CatalogSkill, repository?: string) {
 	return { ...classification(form), ...catalogMetadata(entry, repository) };
 }
 
-const args = process.argv.slice(2);
-if (args.some((arg) => arg !== '--local-only'))
-	throw new Error('Usage: npm run import:catalog -- [--local-only]');
+const { values: args } = parseArgs({
+	options: { 'local-only': { type: 'boolean' }, skill: { type: 'string' } }
+});
 
 try {
+	if (
+		args.skill &&
+		![...localSkills, ...starterCatalog.flatMap((source) => source.skills)].some(
+			(entry) => entry.name === args.skill
+		)
+	)
+		throw new Error(`Unknown catalog skill: ${args.skill}`);
 	const account = db.prepare('SELECT id FROM users WHERE default_maintainer=1').get() as
 		{ id: string } | undefined;
 	const owner = account ? userById(account.id) : null;
 	if (!owner) throw new Error('Run npm run curate -- <maintainer username> first.');
-	for (const source of args.includes('--local-only') ? [] : starterCatalog) {
+	for (const source of args['local-only'] ? [] : starterCatalog) {
 		let snapshot;
-		for (const entry of source.skills) {
-			const row = db
-				.prepare(
-					"SELECT id FROM skills WHERE (owner_id=? OR owner_id='aps-curated-library') AND name=?"
-				)
-				.get(owner.id, entry.name) as { id: string } | undefined;
-			const existing = row ? getSkill(row.id, owner) : null;
+		for (const entry of source.skills.filter((entry) => !args.skill || entry.name === args.skill)) {
 			const directory = entry.directory || `skills/${entry.name}`;
+			const ownership = catalogOwnership(source.repository, directory);
+			const ownerId = ownership ? catalogOwner(ownership.login) : owner.id;
+			const rows = db
+				.prepare(
+					"SELECT id FROM skills WHERE (owner_id=? OR owner_id=? OR maintainer_id=? OR owner_id='aps-curated-library') AND name=?"
+				)
+				.all(owner.id, ownerId, owner.id, entry.name) as { id: string }[];
+			if (rows.length > 1)
+				throw new Error(`Multiple catalog entries named ${entry.name}; inspect before importing.`);
+			const row = rows[0];
+			const existing = row ? getSkill(row.id, owner) : null;
 			if (
 				existing &&
 				(existing.source?.repository !== source.repository ||
@@ -55,6 +70,7 @@ try {
 						JSON.stringify(existing[key as keyof typeof existing]) === JSON.stringify(value)
 				)
 			) {
+				if (ownership) assignCatalogOwner(existing.id, ownerId);
 				console.log(`Already imported: ${entry.name}`);
 				continue;
 			}
@@ -70,10 +86,11 @@ try {
 				meta,
 				existing ? { id: existing.id, expected: existing.revision } : undefined
 			);
+			if (ownership) assignCatalogOwner(skillId, ownerId);
 			console.log(`Imported ${entry.name}: ${pkg.files.length} files → /skills/${skillId}`);
 		}
 	}
-	for (const entry of localSkills) {
+	for (const entry of localSkills.filter((entry) => !args.skill || entry.name === args.skill)) {
 		const folder = fileURLToPath(new URL(`../skills/${entry.name}/`, import.meta.url));
 		const files = readdirSync(folder, { recursive: true, withFileTypes: true })
 			.filter((file) => !file.isDirectory())

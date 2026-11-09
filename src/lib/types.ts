@@ -70,6 +70,6 @@ export type Revision = {
 	description: string;
 	license: string;
 	compatibility: string;
-	files: { path: string; size: number; sha256: string }[];
+	files: { path: string; size: number; sha256: string; mode?: number }[];
 	source: ImportSource | null;
 };

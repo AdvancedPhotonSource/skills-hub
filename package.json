@@ -18,6 +18,7 @@
 		"test:e2e": "playwright test",
 		"seed": "tsx scripts/import-catalog.ts --local-only",
 		"curate": "tsx scripts/curate.ts",
+		"refine:catalog": "tsx scripts/refine-catalog.ts",
 		"import:catalog": "tsx scripts/import-catalog.ts",
 		"admin": "tsx scripts/admin.ts",
 		"format": "prettier --write .",

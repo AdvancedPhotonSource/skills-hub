@@ -6,6 +6,7 @@
 	import { categories, roles, techniques } from '$lib/taxonomy';
 	import { onMount, untrack } from 'svelte';
 	import McpFields from './McpFields.svelte';
+	import ContextPicker from './ContextPicker.svelte';
 	import type { Skill, ImportSource } from '$lib/types';
 	import { sourceUrl } from '$lib/source';
 	type Repository = {
@@ -293,15 +294,7 @@
 								</details>{/each}
 						</div>
 					</fieldset>
-					<div class="field">
-						<label for="contexts">Facility / beamline</label><input
-							id="contexts"
-							name="contexts"
-							value={skill?.contexts.join(', ') || 'aps'}
-							placeholder="aps, 2-id-d"
-							maxlength="400"
-						/><small>Separate names with commas.</small>
-					</div>
+					<ContextPicker contexts={skill?.contexts} />
 					<fieldset class="field">
 						<legend>Scientific techniques</legend>
 						<div class="category-picker">

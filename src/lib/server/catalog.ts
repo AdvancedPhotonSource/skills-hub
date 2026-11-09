@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import { zipSync } from 'fflate';
 import { db, dataDir } from './db';
 import { categories, roles } from '../taxonomy';
+import { canonicalContext } from '../contexts';
 import { HubError } from './errors';
 import { sha256, mcpPackage, type SkillPackage } from './packages';
 import type { Skill, Revision, User, CatalogDetails } from '../types';
@@ -82,7 +83,8 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 	]) {
 		if (params.get(key)) {
 			where.push(`EXISTS (SELECT 1 FROM json_each(s.details, '$.${field}') WHERE value = ?)`);
-			values.push(params.get(key)!.toLowerCase());
+			const value = params.get(key)!.toLowerCase();
+			values.push(key === 'context' ? canonicalContext(value) || value : value);
 		}
 	}
 	if (query) {

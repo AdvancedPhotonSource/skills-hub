@@ -118,3 +118,14 @@ if ((db.pragma('user_version', { simple: true }) as number) < 7) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 8) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE catalog_owners (
+				github_login TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id)
+			);
+			PRAGMA user_version = 8;
+		`);
+	})();
+}

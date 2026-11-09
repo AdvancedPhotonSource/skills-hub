@@ -1,5 +1,6 @@
 import type { CatalogDetails, Mcp } from '../types';
 import { techniques } from '../taxonomy';
+import { canonicalContext } from '../contexts';
 import { HubError } from './errors';
 
 export const emptyDetails: CatalogDetails = {
@@ -27,7 +28,7 @@ export function validateDetails(details: Partial<CatalogDetails>): CatalogDetail
 		'relevance'
 	] as const)
 		if (details[key]) form.set(key, details[key]);
-	form.set('contexts', (details.contexts || []).join(','));
+	for (const context of details.contexts || []) form.append('contexts', context);
 	for (const technique of details.techniques || []) form.append('technique', technique);
 	if (details.mcp)
 		for (const [key, value] of Object.entries(details.mcp))
@@ -64,14 +65,22 @@ export function detailsFromForm(form: FormData): CatalogDetails {
 	};
 	const contexts = [
 		...new Set(
-			text('contexts', 400)
-				.split(',')
-				.map((v) => v.trim().toLowerCase())
-				.filter(Boolean)
+			form.getAll('contexts').flatMap((value) =>
+				String(value)
+					.split(',')
+					.map((v) => v.trim())
+					.filter(Boolean)
+					.map((value) => {
+						const canonical = canonicalContext(value);
+						if (!canonical)
+							throw new HubError('Choose an available facility, beamline, or endstation.');
+						return canonical;
+					})
+			)
 		)
 	];
-	if (contexts.length > 10 || contexts.some((v) => !/^[a-z0-9][a-z0-9 -]{0,39}$/.test(v)))
-		throw new HubError('Use up to 10 short facility or beamline names.');
+	if (contexts.length > 10)
+		throw new HubError('Choose up to 10 facilities, beamlines, or endstations.');
 	const selected = [...new Set(form.getAll('technique').map(String))];
 	if (selected.some((value) => !techniques.some(([id]) => id === value)))
 		throw new HubError('Choose an available technique.');

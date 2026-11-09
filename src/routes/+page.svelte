@@ -15,6 +15,7 @@
 	import SkillList from '$lib/components/SkillList.svelte';
 	import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
 	import { categoryName, roles, techniques } from '$lib/taxonomy';
+	import { contextOptions, canonicalContext } from '$lib/contexts';
 	let { data } = $props();
 	let showFilters = $state(false);
 	let grid = $state(false);
@@ -122,12 +123,13 @@
 					{value}
 				/>{/each}
 			<div class="field">
-				<label for="context">Facility / beamline</label><input
+				<label for="context">Facility / beamline</label><select
 					id="context"
 					name="context"
-					value={data.filters.context || ''}
-					placeholder="e.g. 2-id-d"
-				/>
+					value={canonicalContext(data.filters.context || '') || ''}
+					><option value="">All facilities / beamlines</option>
+					{#each contextOptions as [value, label]}<option {value}>{label}</option>{/each}
+				</select>
 			</div>
 			<div class="field">
 				<label for="technique">Scientific technique</label><select

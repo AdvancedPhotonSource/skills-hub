@@ -93,6 +93,28 @@ describe('accounts and ownership', () => {
 });
 
 describe('catalog integrity', () => {
+	it('canonicalizes repeated and legacy beamline selections, rejecting unknown tags and excess selections', async () => {
+		const { beamlines } = await import('../src/lib/contexts');
+		const form = new FormData();
+		form.append('contexts', 'APS, 2IDD');
+		form.append('contexts', '2-ID-D');
+		form.append('contexts', '034_id_e');
+		expect(detailsFromForm(form).contexts).toEqual(['aps', '2-id-d', '34-id-e']);
+		form.append('contexts', '99-ID-Z');
+		expect(() => detailsFromForm(form)).toThrow('available facility');
+		form.delete('contexts');
+		for (const [id] of beamlines.slice(0, 11)) form.append('contexts', id);
+		expect(() => detailsFromForm(form)).toThrow('up to 10');
+		form.delete('contexts');
+		expect(detailsFromForm(form).contexts).toEqual([]);
+		form.append('contexts', 'CNM');
+		form.append('contexts', 'ATLAS');
+		expect(detailsFromForm(form).contexts).toEqual(['cnm', 'atlas']);
+		for (const removed of ['olcf', 'nersc']) {
+			form.set('contexts', removed);
+			expect(() => detailsFromForm(form)).toThrow('available facility');
+		}
+	});
 	it('searches content, prefixes, phrases, and descendant taxonomy without exposing SQL syntax', () => {
 		for (const q of ['HDF5', 'sci', '"scientific datasets"', 'test-science'])
 			expect(searchSkills(new URLSearchParams({ q })).total).toBe(1);
@@ -270,6 +292,9 @@ describe('typed contributions and maintenance', () => {
 			).skills.map((s) => s.id)
 		).toEqual([id]);
 		expect(searchSkills(new URLSearchParams({ type: 'skill', technique: 'xrf' })).total).toBe(0);
+		expect(searchSkills(new URLSearchParams({ context: '2IDD' })).skills.map((s) => s.id)).toEqual([
+			id
+		]);
 		expect(searchSkills(new URLSearchParams({ q: 'xrf' })).skills.some((s) => s.id === id)).toBe(
 			true
 		);

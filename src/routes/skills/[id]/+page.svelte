@@ -179,12 +179,12 @@
 			<section class="metadata">
 				<h3>About this {details.applicationType === 'mcp' ? 'MCP' : 'skill'}</h3>
 				<dl>
-					{#if details.sourceUrl && !data.revision.source}<dt>Original source</dt>
-						<dd>
-							<a href={details.sourceUrl} target="_blank" rel="noreferrer"
-								>{details.upstreamAuthor || details.sourceUrl}</a
-							>
-						</dd>{/if}
+					<dt>Owner</dt>
+					<dd>
+						<a href={`${base}/?author=${encodeURIComponent(data.skill.username)}`}
+							>{data.skill.displayName}</a
+						>
+					</dd>
 					{#if details.relevance}<dt>APS use case</dt>
 						<dd>{details.relevance}</dd>{/if}
 					{#if data.revision.source}<dt>Source publisher</dt>

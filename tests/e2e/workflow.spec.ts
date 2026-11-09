@@ -41,6 +41,36 @@ test('SSO users publish skills without approval, discover, download, protect own
 	await page.locator('summary').filter({ hasText: 'Scientific data & analysis' }).click();
 	await page.getByLabel('Data reduction', { exact: true }).check();
 	await page.getByLabel('Technology tags').fill('python, hdf5');
+	await page.locator('summary[aria-labelledby^="facilities-label"]').click();
+	const facilities = page.getByRole('group', { name: 'Facilities', exact: true });
+	await expect(facilities.getByRole('checkbox')).toHaveCount(4);
+	await facilities.getByLabel('CNM', { exact: true }).check();
+	await facilities.getByLabel('ATLAS', { exact: true }).check();
+	await expect(facilities.getByLabel('OLCF', { exact: true })).toHaveCount(0);
+	await expect(facilities.getByLabel('NERSC', { exact: true })).toHaveCount(0);
+	await page.locator('summary[aria-labelledby^="beamlines-label"]').click();
+	await expect(facilities).not.toBeVisible();
+	await page.getByLabel('2-ID-D', { exact: true }).check();
+	await page.getByLabel('34-ID-E', { exact: true }).check();
+	expect(
+		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+			.violations
+	).toEqual([]);
+	await page.keyboard.press('Escape');
+	await expect(
+		page.getByRole('group', { name: 'APS beamlines and endstations', exact: true })
+	).not.toBeVisible();
+	const contextSection = page.getByRole('group', {
+		name: 'Facility / beamline / endstation',
+		exact: true
+	});
+	await contextSection.screenshot({ path: 'test-results/context-dropdowns-desktop.png' });
+	await page.setViewportSize({ width: 390, height: 844 });
+	await contextSection.screenshot({ path: 'test-results/context-dropdowns-mobile.png' });
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+		true
+	);
+	await page.setViewportSize({ width: 1280, height: 720 });
 	await page.getByRole('button', { name: 'Publish skill', exact: true }).click();
 	await expect(page).toHaveURL(/\/skills\/[a-f0-9-]+$/);
 	const skillPath = new URL(page.url()).pathname;
@@ -148,6 +178,8 @@ test('SSO users publish skills without approval, discover, download, protect own
 	expect(csrf.status()).toBe(403);
 
 	await page.goto(`${skillPath}/edit`);
+	for (const value of ['aps', 'cnm', 'atlas', '2-id-d', '34-id-e'])
+		await expect(page.locator(`input[name="contexts"][value="${value}"]`)).toBeChecked();
 	const updated = source.replace(
 		'Read metadata before loading arrays.',
 		'Read only the metadata and a small array slice.'
@@ -255,7 +287,8 @@ test('SSO users publish MCPs without approval, with provenance, discovery, and t
 	);
 	await page.locator('summary').filter({ hasText: 'Scientific data & analysis' }).click();
 	await page.getByLabel('Data reduction', { exact: true }).check();
-	await page.getByLabel('Facility / beamline').fill('aps, 2-id-d');
+	await page.locator('summary[aria-labelledby^="beamlines-label"]').click();
+	await page.getByLabel('2-ID-D', { exact: true }).check();
 	await page.getByLabel('X-ray fluorescence', { exact: true }).check();
 	await page.getByLabel('Authorship').selectOption('external');
 	await page.getByLabel('Original author / organization').fill('XRF project');
