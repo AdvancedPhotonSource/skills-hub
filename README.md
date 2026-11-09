@@ -21,17 +21,3 @@ All site content requires an authenticated SSO session, enforced on the server.
 A Hub profile linked to your Argonne identity tracks contributions and permissions.
 Every SSO-signed-in user can publish skills and MCPs without administrator approval.
 Editing and deleting existing entries is restricted to their owners, maintainers, and administrators.
-
-## Catalog maintenance
-
-Source selections and owner assignments are in `scripts/catalog.ts` and `scripts/catalog-owners.ts`. Facility and beamline choices are in `src/lib/contexts.ts`.
-
-After backing up the data directory, run with Node 24+ and development dependencies installed:
-
-```sh
-export DATA_DIR=/path/to/data
-npm run refine:catalog -- <admin-username>
-npm run import:catalog -- --local-only --skill aps-eaa-pi-setup
-```
-
-Both commands are repeatable. Upstream owner profiles have no login credentials; append `github-login=hub-username` to the refinement command to map a confirmed Hub account. Unrecognized historical beamline tags are reported for manual correction.
