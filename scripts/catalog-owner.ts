@@ -2,6 +2,14 @@ import { db } from '../src/lib/server/db';
 import { genesisOwners } from './genesis-owners';
 import { catalogOwners, type CatalogOwner } from './catalog-owners';
 
+export function localCatalogOwners(name: string): string[] | null {
+	if (name === 'aps-gsas-ii-powder-refinement') return [catalogOwner('brian-toby')];
+	if (name === 'aps-eaa-pi-setup') return [catalogOwner('ming-du')];
+	if (name === 'aps-2idd-control-suite')
+		return [catalogOwner('ming-du'), catalogOwner('grace-luo')];
+	return null;
+}
+
 export function catalogOwner(login: CatalogOwner, username?: string): string {
 	return db.transaction(() => {
 		if (username) {

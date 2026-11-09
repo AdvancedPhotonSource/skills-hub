@@ -7,7 +7,8 @@ import {
 	requireOwner,
 	revisionFor,
 	readPackageFile,
-	deleteEntry
+	deleteEntry,
+	updateOwners
 } from './catalog';
 import { formError } from './forms';
 import { renderMarkdown } from './markdown';
@@ -16,6 +17,22 @@ import { allowAttempt, requirePublisher } from './auth';
 import { inspectRepository, importDirectory } from './github';
 
 export const editorActions = {
+	owners: async ({ request, locals, params }: RequestEvent) => {
+		if (!locals.user) redirect(303, `${base}/sign-in`);
+		try {
+			if (!params.id) throw new HubError('Entry not found.', 404);
+			const form = await request.formData();
+			updateOwners(
+				params.id,
+				locals.user,
+				form.getAll('owner').map(String),
+				String(form.get('expectedOwners') || '')
+			);
+		} catch (error) {
+			return formError(error);
+		}
+		redirect(303, `${base}/skills/${params.id}`);
+	},
 	discover: async ({ request, locals }: RequestEvent) => {
 		if (!locals.user) redirect(303, `${base}/sign-in`);
 		if (!allowAttempt(`import:${locals.user.id}`, 30, 3600000))

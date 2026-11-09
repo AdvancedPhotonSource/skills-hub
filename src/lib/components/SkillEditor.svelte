@@ -7,7 +7,8 @@
 	import { onMount, untrack } from 'svelte';
 	import McpFields from './McpFields.svelte';
 	import ContextPicker from './ContextPicker.svelte';
-	import type { Skill, ImportSource } from '$lib/types';
+	import OwnerLinks from './OwnerLinks.svelte';
+	import type { Skill, ImportSource, Owner } from '$lib/types';
 	import { sourceUrl } from '$lib/source';
 	type Repository = {
 		url: string;
@@ -18,9 +19,11 @@
 	};
 	let {
 		skill,
+		ownerChoices = [],
 		form
 	}: {
 		skill?: Skill;
+		ownerChoices?: Owner[];
 		form?: {
 			message?: string;
 			success?: boolean;
@@ -404,6 +407,33 @@
 						>
 					</form>
 				</section>{/if}
+			{#if skill}
+				<section class="panel">
+					<h2>Owners</h2>
+					<form method="POST" action="?/owners" use:enhance>
+						<input
+							type="hidden"
+							name="expectedOwners"
+							value={JSON.stringify(skill.owners.map((owner) => owner.id))}
+						/>
+						<fieldset class="owner-choices">
+							<legend>Select owners</legend>
+							{#each [...skill.owners, ...ownerChoices.filter((choice) => !skill.owners.some((owner) => owner.id === choice.id))] as owner}
+								<label
+									><input
+										type="checkbox"
+										name="owner"
+										value={owner.id}
+										checked={skill.owners.some((current) => current.id === owner.id)}
+									/>
+									{owner.displayName.replace(/^([^,]+),\s*(.+)$/, '$2 $1')} (@{owner.username})</label
+								>
+							{/each}
+						</fieldset>
+						<button class="button small">Save owners</button>
+					</form>
+				</section>
+			{/if}
 		</div>
 		<aside class="publishing-note">
 			<FileText size={23} strokeWidth={1.4} />
@@ -414,14 +444,29 @@
 					: 'Upload SKILL.md or a ZIP with its supporting files.'}
 			</p>
 			<p>
-				Maintained by {skill?.maintainerName || page.data.user?.displayName}. All Argonne SSO users
-				can publish skills and MCPs.
+				{#if skill}<OwnerLinks owners={skill.owners} />{:else}Owner {page.data.user
+						?.displayName}{/if}. All Argonne SSO users can publish skills and MCPs.
 			</p>
 		</aside>
 	</div>
 </div>
 
 <style>
+	.owner-choices {
+		display: grid;
+		gap: 8px;
+		max-height: 240px;
+		overflow: auto;
+		margin-bottom: 16px;
+	}
+	.owner-choices label {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.owner-choices input {
+		width: auto;
+	}
 	.editor-shell {
 		max-width: 1060px;
 	}

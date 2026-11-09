@@ -20,7 +20,8 @@ const {
 	download,
 	searchSkills,
 	taxonomyCounts,
-	deleteEntry
+	deleteEntry,
+	updateOwners
 } = await import('../src/lib/server/catalog');
 const { renderMarkdown } = await import('../src/lib/server/markdown');
 
@@ -48,6 +49,39 @@ afterAll(() => {
 });
 
 describe('accounts and ownership', () => {
+	it('supports co-owner access, filters, transfers, and removal without changing package history', () => {
+		const form = new FormData();
+		form.set('applicationType', 'mcp');
+		form.set('instructions', 'Connect to the server.');
+		const id = publish(
+			alice,
+			mcpPackage('shared-tools', 'Shared tools', 'Connect to the server.'),
+			{ ...metadata, ...detailsFromForm(form) }
+		);
+		const revision = revisionFor(id);
+		const originalOwners = JSON.stringify([alice.id]);
+		expect(() => updateOwners(id, bob, [bob.id], originalOwners)).toThrow('Only the owner');
+		updateOwners(id, alice, [alice.id, bob.id, bob.id], originalOwners);
+		expect(getSkill(id).owners.map((owner) => owner.id)).toEqual([alice.id, bob.id]);
+		expect(requireOwner(id, bob).id).toBe(id);
+		expect(
+			searchSkills(new URLSearchParams({ author: bob.username })).skills.map((skill) => skill.id)
+		).toContain(id);
+		expect(searchSkills(new URLSearchParams(), bob).skills.map((skill) => skill.id)).toContain(id);
+		expect(() => updateOwners(id, alice, [alice.id], originalOwners)).toThrow('Owners changed');
+		for (const owners of [[], ['missing']])
+			expect(() => updateOwners(id, alice, owners)).toThrow('existing owners');
+		db.prepare('UPDATE skills SET archived=1 WHERE id=?').run(id);
+		expect(getSkill(id, bob).id).toBe(id);
+		expect(() => getSkill(id)).toThrow('not found');
+		updateOwners(id, bob, [bob.id]);
+		expect(() => requireOwner(id, alice)).toThrow('not found');
+		expect(getSkill(id, bob).maintainerId).toBe(bob.id);
+		expect(revisionFor(id)).toEqual(revision);
+		updateOwners(id, bob, [bob.id, alice.id]);
+		deleteEntry(id, alice, 1);
+		expect(db.prepare('SELECT 1 FROM skill_coowners WHERE skill_id=?').get(id)).toBeUndefined();
+	});
 	it('authenticates with normalized usernames, rejects incorrect passwords, and stores password hashes', async () => {
 		expect((await authenticate('ALICE', 'long-passphrase-for-alice'))?.id).toBe(alice.id);
 		expect(await authenticate('alice', 'wrong-password')).toBeNull();

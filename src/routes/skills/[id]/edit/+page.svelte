@@ -3,4 +3,4 @@
 	let { data, form } = $props();
 </script>
 
-<SkillEditor skill={data.skill} {form} />
+<SkillEditor skill={data.skill} ownerChoices={data.ownerChoices} {form} />

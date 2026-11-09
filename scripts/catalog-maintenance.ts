@@ -4,12 +4,15 @@ import {
 	getSkill,
 	publish,
 	readPackageFile,
-	revisionFor
+	revisionFor,
+	updateOwners
 } from '../src/lib/server/catalog';
 import { canonicalContext } from '../src/lib/contexts';
 import type { Skill, User } from '../src/lib/types';
-import { catalogOwner, assignCatalogOwner } from './catalog-owner';
+import { catalogOwner, assignCatalogOwner, localCatalogOwners } from './catalog-owner';
 import { catalogOwnership } from './catalog-owners';
+import { genesisRepository } from './genesis-owners';
+import { hiddenCatalogSkills } from './catalog';
 
 const removedOrganizations = new Set(['k-dense-ai', 'uw-ssec']);
 function organization(url: string) {
@@ -24,7 +27,20 @@ function organization(url: string) {
 }
 
 export function removeFromCatalog(skill: Skill) {
-	if (['hpc-orchestration', 'create-eaa-compatible-mcp-servers'].includes(skill.name)) return true;
+	if (
+		[
+			'hpc-orchestration',
+			'create-eaa-compatible-mcp-servers',
+			'aps-eaa-workflow-setup',
+			'aps-lauelab-indexing'
+		].includes(skill.name)
+	)
+		return true;
+	if (
+		skill.source?.repository.toLowerCase() === genesisRepository.toLowerCase() &&
+		skill.source.directory.startsWith('skills/basesafe-skills/')
+	)
+		return true;
 	return [
 		skill.source?.repository.split('/')[0].toLowerCase(),
 		organization(skill.sourceUrl),
@@ -41,7 +57,7 @@ export function refineCatalog(admin: User, log: (message: string) => void = cons
 		.get() as { id: string; display_name: string } | undefined;
 	if (!sharedOwner && db.prepare("SELECT 1 FROM skills WHERE owner_id='aps-curated-library'").get())
 		throw new Error('Configure the default maintainer before transferring shared-library entries.');
-	const counts = { removed: 0, reassigned: 0, revised: 0, unresolved: 0 };
+	const counts = { removed: 0, hidden: 0, reassigned: 0, revised: 0, unresolved: 0 };
 	for (const { id } of entries) {
 		const skill = getSkill(id, admin);
 		if (removeFromCatalog(skill)) {
@@ -49,6 +65,11 @@ export function refineCatalog(admin: User, log: (message: string) => void = cons
 			log(`Removed ${skill.applicationType}: ${skill.name}`);
 			counts.removed++;
 			continue;
+		}
+		if (hiddenCatalogSkills.has(skill.name) && !skill.archived) {
+			db.prepare('UPDATE skills SET archived=1 WHERE id=?').run(id);
+			counts.hidden++;
+			log(`Hidden: ${skill.name}`);
 		}
 		const ownership = skill.source
 			? catalogOwnership(skill.source.repository, skill.source.directory)
@@ -92,7 +113,18 @@ export function refineCatalog(admin: User, log: (message: string) => void = cons
 			);
 			counts.revised++;
 		}
-		if (ownership) {
+		const localOwners = localCatalogOwners(skill.name);
+		if (localOwners) {
+			if (JSON.stringify(skill.owners.map((owner) => owner.id)) !== JSON.stringify(localOwners)) {
+				updateOwners(id, admin, localOwners);
+				counts.reassigned++;
+				log(
+					`Owners: ${skill.name} → ${getSkill(id, admin)
+						.owners.map((owner) => owner.displayName)
+						.join(', ')}`
+				);
+			}
+		} else if (ownership) {
 			const ownerId = catalogOwner(ownership.login);
 			if (skill.ownerId !== ownerId) {
 				assignCatalogOwner(id, ownerId);

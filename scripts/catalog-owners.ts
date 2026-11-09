@@ -2,6 +2,22 @@ import { genesisOwners, genesisOwnership, genesisRepository } from './genesis-ow
 
 export const catalogOwners = {
 	...genesisOwners,
+	// Stable attribution keys; confirmed Hub accounts are mapped explicitly.
+	'brian-toby': {
+		name: 'Brian Toby',
+		basis: 'owner',
+		evidence: 'https://github.com/AdvancedPhotonSource/GSAS-II'
+	},
+	'ming-du': {
+		name: 'Ming Du',
+		basis: 'owner',
+		evidence: 'https://github.com/AdvancedPhotonSource/EAA-Pi'
+	},
+	'grace-luo': {
+		name: 'Grace Luo',
+		basis: 'owner',
+		evidence: 'https://github.com/AdvancedPhotonSource/EAA-Pi'
+	},
 	stevehenke: {
 		name: 'Steve Henke',
 		basis: 'author',

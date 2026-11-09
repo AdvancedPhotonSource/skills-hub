@@ -7,13 +7,13 @@ import { categories, roles } from '../taxonomy';
 import { canonicalContext } from '../contexts';
 import { HubError } from './errors';
 import { sha256, mcpPackage, type SkillPackage } from './packages';
-import type { Skill, Revision, User, CatalogDetails } from '../types';
+import type { Skill, Revision, User, Owner, CatalogDetails } from '../types';
 import { requirePublisher } from './auth';
 import { detailsFromForm, readDetails, validateDetails } from './details';
 
 type SkillRow = Omit<
 	Skill,
-	keyof CatalogDetails | 'categories' | 'tags' | 'archived' | 'source'
+	keyof CatalogDetails | 'categories' | 'tags' | 'archived' | 'source' | 'owners'
 > & {
 	categories: string;
 	tags: string;
@@ -29,6 +29,16 @@ const select = `SELECT s.id, s.owner_id AS ownerId, s.name, s.description, s.cat
   JOIN revisions r ON r.skill_id = s.id AND r.number = s.revision`;
 const toSkill = ({ details, ...row }: SkillRow): Skill => ({
 	...row,
+	owners: [
+		{ id: row.ownerId, username: row.username, displayName: row.displayName },
+		...(db
+			.prepare(
+				`SELECT u.id, u.username, u.display_name AS displayName
+			FROM skill_coowners c JOIN users u ON u.id=c.user_id
+			WHERE c.skill_id=? AND c.user_id<>? ORDER BY u.display_name, u.id`
+			)
+			.all(row.id, row.ownerId) as Owner[])
+	],
 	...readDetails(details),
 	categories: JSON.parse(row.categories),
 	tags: JSON.parse(row.tags),
@@ -38,20 +48,56 @@ const toSkill = ({ details, ...row }: SkillRow): Skill => ({
 
 export function getSkill(id: string, owner?: User | null) {
 	const row = db.prepare(`${select} WHERE s.id = ?`).get(id) as SkillRow | undefined;
-	if (
-		!row ||
-		(row.archived && row.ownerId !== owner?.id && row.maintainerId !== owner?.id && !owner?.isAdmin)
-	)
-		throw new HubError('Skill not found.', 404);
-	return toSkill(row);
+	if (!row) throw new HubError('Skill not found.', 404);
+	const skill = toSkill(row);
+	if (skill.archived && !canManage(skill, owner)) throw new HubError('Skill not found.', 404);
+	return skill;
+}
+
+export function canManage(skill: Skill, user?: User | null) {
+	return Boolean(
+		user &&
+		(user.isAdmin ||
+			skill.maintainerId === user.id ||
+			skill.owners.some((owner) => owner.id === user.id))
+	);
 }
 
 export function requireOwner(id: string, user: User | null) {
 	if (!user) throw new HubError('Sign in to manage this skill.', 401);
 	const skill = getSkill(id, user);
-	if (skill.ownerId !== user.id && skill.maintainerId !== user.id && !user.isAdmin)
-		throw new HubError('Only the owner can modify this skill.', 403);
+	if (!canManage(skill, user)) throw new HubError('Only the owner can modify this skill.', 403);
 	return skill;
+}
+
+export function updateOwners(id: string, user: User, ids: string[], expected?: string) {
+	return db.transaction(() => {
+		const skill = requireOwner(id, user);
+		if (
+			expected !== undefined &&
+			expected !== JSON.stringify(skill.owners.map((owner) => owner.id))
+		)
+			throw new HubError('Owners changed. Reload before saving.', 409);
+		const owners = [...new Set(ids)];
+		if (
+			!owners.length ||
+			owners.length > 20 ||
+			owners.some((owner) => !db.prepare('SELECT 1 FROM users WHERE id=?').get(owner))
+		)
+			throw new HubError('Choose between one and twenty existing owners.');
+		if (
+			db
+				.prepare('SELECT 1 FROM skills WHERE owner_id=? AND name=? AND id<>?')
+				.get(owners[0], skill.name, id)
+		)
+			throw new HubError('That owner already has an entry with this name.', 409);
+		db.prepare(
+			'UPDATE skills SET owner_id=?, maintainer_id=CASE WHEN maintainer_id=owner_id THEN ? ELSE maintainer_id END WHERE id=?'
+		).run(owners[0], owners[0], id);
+		db.prepare('DELETE FROM skill_coowners WHERE skill_id=?').run(id);
+		const insert = db.prepare('INSERT INTO skill_coowners (skill_id,user_id) VALUES (?,?)');
+		for (const owner of owners.slice(1)) insert.run(id, owner);
+	})();
 }
 
 export function searchSkills(params: URLSearchParams, owner?: User) {
@@ -66,8 +112,12 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 	const exact = params.get('exact') === '1';
 	const page = Math.max(1, Math.min(100000, Number(params.get('page')) || 1)) | 0;
 	const limit = 20;
-	const where = [owner ? '(s.owner_id = ? OR s.maintainer_id = ?)' : 's.archived = 0'];
-	const values: (string | number)[] = owner ? [owner.id, owner.id] : [];
+	const where = [
+		owner
+			? '(s.owner_id = ? OR s.maintainer_id = ? OR EXISTS (SELECT 1 FROM skill_coowners WHERE skill_id=s.id AND user_id=?))'
+			: 's.archived = 0'
+	];
+	const values: (string | number)[] = owner ? [owner.id, owner.id, owner.id] : [];
 	for (const key of ['applicationType', 'provenance'] as const) {
 		const value = params.get(key === 'applicationType' ? 'type' : key);
 		if (value) {
@@ -118,7 +168,7 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 	}
 	if (author) {
 		where.push(
-			"(u.username = ? OR s.maintainer_id IN (SELECT id FROM users WHERE username = ?) OR json_extract(r.source, '$.author') = ? COLLATE NOCASE)"
+			"(u.username = ? OR EXISTS (SELECT 1 FROM skill_coowners c JOIN users co ON co.id=c.user_id WHERE c.skill_id=s.id AND co.username=?) OR json_extract(r.source, '$.author') = ? COLLATE NOCASE)"
 		);
 		values.push(author, author, author);
 	}

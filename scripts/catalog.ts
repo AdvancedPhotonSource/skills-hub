@@ -7,6 +7,8 @@ export type CatalogSkill = Classification & {
 	directory?: string;
 };
 
+export const hiddenCatalogSkills = new Set(['aps-gsas-ii-powder-refinement']);
+
 // Reviewed source selection; commits make the starter library reproducible.
 export const starterCatalog: {
 	repository: string;
@@ -48,39 +50,6 @@ export const starterCatalog: {
 				directory: `skills/hpc-skills/${name}`,
 				categories: ['hpc'],
 				tags: ['alcf', 'genesis', 'hpc', name],
-				role: 'Researcher',
-				example
-			})),
-			...[
-				[
-					'agentic-vulnerabilities-scan',
-					'Assess our beamline assistant in an authorized sandbox using a bounded Promptfoo vulnerability scan.'
-				],
-				[
-					'ai-fingerprint',
-					'Profile our scientific AI assistant’s architecture and security boundaries before a safety review.'
-				],
-				[
-					'battleprint',
-					'Use our AI system fingerprint to analyze attack vectors and defenses for a scientific assistant.'
-				],
-				[
-					'fingerprinting',
-					'Classify this scientific ML repository and gather evidence for a follow-on safety assessment.'
-				],
-				[
-					'uncertainty-quantification',
-					'Assess calibration, out-of-distribution behavior, and uncertainty before using our model in experimental decisions.'
-				],
-				[
-					'uq-metrics-evaluator',
-					'Evaluate prediction accuracy and uncertainty calibration from our scientific model’s CSV outputs.'
-				]
-			].map(([name, example]) => ({
-				name,
-				directory: `skills/basesafe-skills/${name}`,
-				categories: ['machine-learning', 'agent-workflows'],
-				tags: ['alcf', 'genesis', 'safety', 'basesafe'],
 				role: 'Researcher',
 				example
 			})),
@@ -174,22 +143,6 @@ export const localSkills: CatalogSkill[] = [
 		tags: ['discovery', 'aps'],
 		role: '',
 		example: 'Find a skill or MCP for ptychography reconstruction and explain the requirements.'
-	},
-	{
-		name: 'aps-eaa-workflow-setup',
-		categories: ['agent-workflows', 'mcp', 'skill-authoring'],
-		tags: ['eaa', 'python', 'mcp', 'argo'],
-		role: 'Software engineer',
-		example:
-			'Set up a terminal EAA agent using our configured model endpoint, a dedicated workspace, and downloaded hub skills. Show how to attach our existing MCP server and diagnose missing skills or tool images.'
-	},
-	{
-		name: 'aps-lauelab-indexing',
-		categories: ['scattering', 'materials'],
-		tags: ['lauelab', 'laue', '34-id-e', 'hdf5'],
-		role: 'Researcher',
-		example:
-			'Prepare a reproducible lauelab indexing workflow for these APS 34-ID-E frames and their matching detector geometry and crystal XML files. Summarize peaks, orientations, unique indexed peaks, and any input failures.'
 	},
 	{
 		name: 'aps-gsas-ii-powder-refinement',

@@ -37,11 +37,13 @@ export type ImportSource = {
 	author: string;
 	licenses: { path: string; repositoryPath: string }[];
 };
+export type Owner = Pick<User, 'id' | 'username' | 'displayName'>;
 export type Skill = CatalogDetails & {
 	id: string;
 	name: string;
 	description: string;
 	ownerId: string;
+	owners: Owner[];
 	username: string;
 	displayName: string;
 	maintainerId: string;

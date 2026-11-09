@@ -6,17 +6,13 @@ describe('installation and repository links', () => {
 	it('targets the selected immutable hub package for every runner', () => {
 		const url = 'https://hub.anl.gov/skills-hub/skills/123/download?revision=4';
 		for (const runner of packageRunners) {
-			const command = installCommand(url, 'aps-lauelab-indexing', runner);
+			const command = installCommand(url, 'example-skill', runner);
 			expect(command).toBe(
-				`${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1.7.4 add '${url}' --skill 'aps-lauelab-indexing'`
+				`${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1.7.4 add '${url}' --skill 'example-skill'`
 			);
 		}
 		expect(
-			installPrompt(
-				'https://hub.anl.gov/skills-hub/skill-install/prompt.md',
-				url,
-				'aps-lauelab-indexing'
-			)
+			installPrompt('https://hub.anl.gov/skills-hub/skill-install/prompt.md', url, 'example-skill')
 		).toContain(url);
 		expect(installCommand("https://host/it's-a-package?revision=1", 'example', 'npx')).toContain(
 			"'https://host/it'\\''s-a-package?revision=1'"

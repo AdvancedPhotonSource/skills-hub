@@ -8,7 +8,7 @@ try {
 	const [username, ...mappings] = process.argv.slice(2);
 	if (!username)
 		throw new Error(
-			'Usage: npm run refine:catalog -- <admin username> [github-login=hub-username ...]'
+			'Usage: npm run refine:catalog -- <admin username> [owner-key=hub-username ...]'
 		);
 	const row = db.prepare('SELECT id FROM users WHERE username=?').get(username) as
 		{ id: string } | undefined;

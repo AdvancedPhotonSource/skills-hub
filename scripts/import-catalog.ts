@@ -1,14 +1,26 @@
 import { db } from '../src/lib/server/db';
 import { userById } from '../src/lib/server/auth';
-import { classification, getSkill, publish, revisionFor } from '../src/lib/server/catalog';
+import {
+	classification,
+	getSkill,
+	publish,
+	revisionFor,
+	updateOwners
+} from '../src/lib/server/catalog';
 import { inspectRepository, importDirectory } from '../src/lib/server/github';
 import { validatePackage, sha256 } from '../src/lib/server/packages';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { starterCatalog, localSkills, catalogMetadata, type CatalogSkill } from './catalog';
+import {
+	starterCatalog,
+	localSkills,
+	catalogMetadata,
+	hiddenCatalogSkills,
+	type CatalogSkill
+} from './catalog';
 import { catalogOwnership } from './catalog-owners';
-import { catalogOwner, assignCatalogOwner } from './catalog-owner';
+import { catalogOwner, assignCatalogOwner, localCatalogOwners } from './catalog-owner';
 import { parseArgs } from 'node:util';
 
 function metadata(entry: CatalogSkill, repository?: string) {
@@ -91,6 +103,11 @@ try {
 		}
 	}
 	for (const entry of localSkills.filter((entry) => !args.skill || entry.name === args.skill)) {
+		if (hiddenCatalogSkills.has(entry.name)) {
+			console.log(`Hidden; import skipped: ${entry.name}`);
+			continue;
+		}
+		const ownerIds = localCatalogOwners(entry.name);
 		const folder = fileURLToPath(new URL(`../skills/${entry.name}/`, import.meta.url));
 		const files = readdirSync(folder, { recursive: true, withFileTypes: true })
 			.filter((file) => !file.isDirectory())
@@ -105,11 +122,14 @@ try {
 			});
 		const pkg = validatePackage(files);
 		if (pkg.name !== entry.name) throw new Error(`Unexpected local skill name: ${entry.name}`);
-		const row = db
+		const rows = db
 			.prepare(
-				"SELECT id FROM skills WHERE (owner_id=? OR owner_id='aps-curated-library') AND name=?"
+				"SELECT id FROM skills WHERE (owner_id=? OR owner_id=? OR maintainer_id=? OR owner_id='aps-curated-library') AND name=?"
 			)
-			.get(owner.id, entry.name) as { id: string } | undefined;
+			.all(owner.id, ownerIds?.[0] || owner.id, owner.id, entry.name) as { id: string }[];
+		if (rows.length > 1)
+			throw new Error(`Multiple catalog entries named ${entry.name}; inspect before importing.`);
+		const row = rows[0];
 		const existing = row ? getSkill(row.id, owner) : null;
 		if (existing?.source)
 			throw new Error(`Cannot replace an upstream import with local files: ${entry.name}`);
@@ -137,6 +157,7 @@ try {
 					JSON.stringify(existing[key as keyof typeof existing]) === JSON.stringify(value)
 			)
 		) {
+			if (ownerIds) updateOwners(existing.id, owner, ownerIds);
 			console.log(`Already published: ${entry.name}`);
 			continue;
 		}
@@ -146,6 +167,7 @@ try {
 			meta,
 			existing ? { id: existing.id, expected: existing.revision } : undefined
 		);
+		if (ownerIds) updateOwners(skillId, owner, ownerIds);
 		console.log(`Published ${entry.name}: ${pkg.files.length} files → /skills/${skillId}`);
 	}
 } finally {

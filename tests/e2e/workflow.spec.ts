@@ -171,6 +171,11 @@ test('SSO users publish skills without approval, discover, download, protect own
 		form: { expected: '1' }
 	});
 	expect(await refreshAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
+	const ownerAttempt = await attacker.request.post(`${skillPath}/edit?/owners`, {
+		headers: { origin },
+		form: { owner: 'other-user', expectedOwners: '[]' }
+	});
+	expect(await ownerAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
 	const csrf = await page.request.post(`${skillPath}/edit?/delete`, {
 		headers: { origin: 'https://outside.example' },
 		form: { expected: '1' }
@@ -205,6 +210,31 @@ test('SSO users publish skills without approval, discover, download, protect own
 	).toBe(source);
 	await page.goto('/saved');
 	await expect(page.getByRole('link', { name: 'browser-test-skill' })).toBeVisible();
+	await page.goto(`${skillPath}/edit`);
+	await page
+		.getByRole('group', { name: 'Select owners' })
+		.getByLabel('catalog-reader (@catalog-reader)', { exact: true })
+		.check();
+	expect(
+		(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+			.violations
+	).toEqual([]);
+	await page.getByRole('button', { name: 'Save owners', exact: true }).click();
+	await expect(page).toHaveURL(new RegExp(`${skillPath}$`));
+	await expect(page.locator('.attribution')).toContainText('Owner Test Owner, catalog-reader');
+	await expect(page.getByText('Maintained by', { exact: false })).toHaveCount(0);
+	await anonymous.goto(`${skillPath}/edit`);
+	await expect(anonymous.getByRole('button', { name: 'Save changes', exact: true })).toBeVisible();
+	await anonymous.goto('/my-skills');
+	await expect(
+		anonymous.getByRole('link', { name: 'browser-test-skill', exact: true })
+	).toBeVisible();
+	await anonymous.goto('/?author=catalog-reader');
+	await expect(anonymous.locator('.skill-meta')).toContainText('Owner Test Owner, catalog-reader');
+	await anonymous.screenshot({ path: 'test-results/multiple-owners-mobile.png', fullPage: true });
+	expect(
+		await anonymous.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+	).toBe(true);
 	await page.goto(`${skillPath}/edit`);
 	await page.getByLabel('Application type').selectOption('mcp');
 	await page
@@ -299,7 +329,7 @@ test('SSO users publish MCPs without approval, with provenance, discovery, and t
 	const path = new URL(page.url()).pathname;
 	await expect(page.getByRole('heading', { name: 'Deploy MCP' })).toBeVisible();
 	await expect(page.getByRole('region', { name: 'Use this skill' })).toHaveCount(0);
-	await expect(page.getByText('Maintained by MCP Owner', { exact: true })).toBeVisible();
+	await expect(page.getByText('Owner MCP Owner', { exact: true })).toBeVisible();
 	await expect(page.getByText('Tracking ref', { exact: true })).toHaveCount(0);
 	const result = await (await page.request.get(`/api/v1${path}`)).json();
 	expect(result.skill).toMatchObject({

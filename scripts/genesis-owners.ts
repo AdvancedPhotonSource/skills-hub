@@ -13,11 +13,6 @@ export const genesisOwners = {
 		name: 'Ian Foster',
 		basis: 'author',
 		evidence: `${evidenceRoot}/skills/academy/ATTRIBUTION.md`
-	},
-	'nhodas-pnnl': {
-		name: 'Nathan Hodas',
-		basis: 'uploader',
-		evidence: `https://github.com/${genesisRepository}/commit/7c3ea83edaff1c6d685cf7239ac4ad32f3d0008b`
 	}
 } as const;
 type GenesisOwner = keyof typeof genesisOwners;
@@ -31,13 +26,6 @@ export function genesisOwnership(directory: string) {
 	} else if (directory === 'skills/academy') {
 		login = 'ianfoster';
 		attribution = 'Ian Foster (ANL)';
-	} else if (
-		/^skills\/basesafe-skills\/(agentic-vulnerabilities-scan|ai-fingerprint|battleprint|fingerprinting|uncertainty-quantification|uq-metrics-evaluator)$/.test(
-			directory
-		)
-	) {
-		login = 'nhodas-pnnl';
-		attribution = 'ModCon BaseSafe Team; Genesis uploader: Nathan Hodas (PNNL)';
 	} else return null;
 	return { login, attribution, ...genesisOwners[login] };
 }

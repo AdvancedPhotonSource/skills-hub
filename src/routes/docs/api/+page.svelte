@@ -104,11 +104,7 @@
 			'string',
 			'Exact role label: Beamline scientist, Researcher, Software engineer, Controls engineer, or System administrator.'
 		],
-		[
-			'author',
-			'string',
-			'Submitter or maintainer username (such as haskels), or upstream publisher.'
-		],
+		['author', 'string', 'Owner username (such as haskels), or upstream publisher.'],
 		[
 			'repository',
 			'owner/repo',
@@ -271,16 +267,8 @@
 							></tr
 						>
 						<tr
-							><td
-								><code>skill.ownerId</code><br /><code>username</code>, <code>displayName</code></td
-							><td>Original hub submitter’s ID, username, and display name.</td></tr
-						>
-						<tr
-							><td
-								><code>skill.maintainerId</code>, <code>maintainerName</code>,
-								<code>maintainerUsername</code></td
-							><td
-								>Employee maintaining this entry, separately from its submitter and upstream author.</td
+							><td><code>skill.owners</code></td><td
+								>Owners, each with an ID, username, and displayName.</td
 							></tr
 						>
 						<tr

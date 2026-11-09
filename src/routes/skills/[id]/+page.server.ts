@@ -1,5 +1,11 @@
 import { error } from '@sveltejs/kit';
-import { getSkill, revisionFor, readPackageFile, searchSkills } from '$lib/server/catalog';
+import {
+	getSkill,
+	revisionFor,
+	readPackageFile,
+	searchSkills,
+	canManage
+} from '$lib/server/catalog';
 import { renderMarkdown } from '$lib/server/markdown';
 import { HubError } from '$lib/server/errors';
 import { validatePackage } from '$lib/server/packages';
@@ -39,10 +45,7 @@ export const load = ({ params, url, locals }: import('./$types').PageServerLoadE
 					? renderMarkdown(text, { path, revision: revision.number, files: revision.files })
 					: null,
 			raw: url.searchParams.get('view') === 'source',
-			canEdit:
-				skill.ownerId === locals.user?.id ||
-				skill.maintainerId === locals.user?.id ||
-				Boolean(locals.user?.isAdmin),
+			canEdit: canManage(skill, locals.user),
 			related: searchSkills(new URLSearchParams({ category: skill.categories[0] || '' }))
 				.skills.filter((s) => s.id !== skill.id)
 				.slice(0, 3)

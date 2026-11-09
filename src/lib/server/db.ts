@@ -129,3 +129,17 @@ if ((db.pragma('user_version', { simple: true }) as number) < 8) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 9) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE skill_coowners (
+				skill_id TEXT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+				user_id TEXT NOT NULL REFERENCES users(id),
+				PRIMARY KEY (skill_id, user_id)
+			);
+			CREATE INDEX skill_coowners_user ON skill_coowners(user_id);
+			PRAGMA user_version = 9;
+		`);
+	})();
+}

@@ -55,7 +55,17 @@ describe('catalog refinement', () => {
 			skill('pytorch-lightning', 'K-Dense-AI/scientific-agent-skills'),
 			skill('containers', 'uw-ssec/rse-plugins'),
 			skill('hpc-orchestration', 'scimate-ai/hpc-skills'),
-			skill('create-eaa-compatible-mcp-servers', 'AdvancedPhotonSource/EAA')
+			skill('create-eaa-compatible-mcp-servers', 'AdvancedPhotonSource/EAA'),
+			skill('aps-eaa-workflow-setup'),
+			skill('aps-lauelab-indexing'),
+			...[
+				'agentic-vulnerabilities-scan',
+				'ai-fingerprint',
+				'battleprint',
+				'fingerprinting',
+				'uncertainty-quantification',
+				'uq-metrics-evaluator'
+			].map((name) => skill(name, genesisRepository, `skills/basesafe-skills/${name}`))
 		];
 		removed.push(
 			publish(admin, mcpPackage('external-mcp', 'External tools', 'Run it.'), {
@@ -76,10 +86,14 @@ describe('catalog refinement', () => {
 				}
 			})
 		);
-		const kept = [skill('osa-alignment'), skill('pytorch-lightning', undefined, undefined, other)];
+		const kept = [
+			skill('osa-alignment'),
+			skill('pytorch-lightning', undefined, undefined, other),
+			skill('fingerprinting', undefined, undefined, other)
+		];
 		const revisions = removed.map((id) => revisionFor(id));
 		expect(() => refineCatalog(other)).toThrow('administrator');
-		expect(refineCatalog(admin, () => {}).removed).toBe(5);
+		expect(refineCatalog(admin, () => {}).removed).toBe(13);
 		for (const id of removed) {
 			expect(() => getSkill(id)).toThrow('not found');
 			expect(db.prepare('SELECT 1 FROM revisions WHERE skill_id=?').get(id)).toBeUndefined();
@@ -106,17 +120,11 @@ describe('catalog refinement', () => {
 		);
 		const before = ids.map((id) => revisionFor(id));
 		const result = refineCatalog(admin, () => {});
-		expect(result).toMatchObject({ reassigned: 12, revised: 12, unresolved: 0 });
+		expect(result).toMatchObject({ reassigned: 6, revised: 6, unresolved: 0 });
 		ids.forEach((id, index) => {
 			const current = getSkill(id);
 			const entry = genesis.skills[index];
-			expect(current.displayName).toBe(
-				entry.name === 'academy'
-					? 'Ian Foster'
-					: entry.directory!.includes('hpc-skills')
-						? 'Matt Baughman'
-						: 'Nathan Hodas'
-			);
+			expect(current.displayName).toBe(entry.name === 'academy' ? 'Ian Foster' : 'Matt Baughman');
 			expect(current.upstreamAuthor).toBe(catalogMetadata(entry, genesisRepository).upstreamAuthor);
 			expect(current.maintainerId).toBe(admin.id);
 			expect(requireOwner(id, admin).id).toBe(id);
@@ -131,6 +139,7 @@ describe('catalog refinement', () => {
 		});
 		expect(refineCatalog(admin, () => {})).toEqual({
 			removed: 0,
+			hidden: 0,
 			reassigned: 0,
 			revised: 0,
 			unresolved: 0
@@ -204,17 +213,50 @@ describe('catalog refinement', () => {
 		expect(results.total).toBe(1);
 		const entry = results.skills[0];
 		expect(entry).toMatchObject({
-			ownerId: admin.id,
-			maintainerId: admin.id,
+			ownerId: catalogOwner('ming-du'),
+			maintainerId: catalogOwner('ming-du'),
 			applicationType: 'skill',
 			sourceUrl: 'https://github.com/AdvancedPhotonSource/EAA-Pi'
 		});
+		expect(entry.owners.map((owner) => owner.displayName)).toEqual(['Ming Du']);
 		expect(revisionFor(entry.id).files.map((file) => file.path)).toContain('references/setup.md');
 		expect(run()).toContain('Already published: aps-eaa-pi-setup');
 		expect(getSkill(entry.id).revision).toBe(1);
+		expect(refineCatalog(admin, () => {})).toMatchObject({ reassigned: 0, revised: 0 });
 		expect((db.prepare('SELECT count(*) AS n FROM skills').get() as { n: number }).n).toBe(
 			before + 1
 		);
+	});
+	it('hides paused skills while retaining their ownership, package and history across imports', () => {
+		const id = skill('aps-gsas-ii-powder-refinement');
+		const revision = revisionFor(id);
+		expect(refineCatalog(admin, () => {})).toMatchObject({ hidden: 1 });
+		expect(getSkill(id, admin)).toMatchObject({
+			archived: true,
+			ownerId: catalogOwner('brian-toby')
+		});
+		expect(() => getSkill(id, other)).toThrow('not found');
+		expect(
+			searchSkills(new URLSearchParams({ q: 'aps-gsas-ii-powder-refinement', exact: '1' })).total
+		).toBe(0);
+		expect(
+			execFileSync(
+				process.execPath,
+				[
+					'--import',
+					'tsx',
+					'scripts/import-catalog.ts',
+					'--local-only',
+					'--skill',
+					'aps-gsas-ii-powder-refinement'
+				],
+				{ env: process.env, encoding: 'utf8' }
+			)
+		).toContain('Hidden; import skipped');
+		expect(getSkill(id, admin).archived).toBe(true);
+		expect(revisionFor(id)).toEqual(revision);
+		expect(readPackageFile(revision, 'scripts/run.sh').toString()).toContain('exit 0');
+		expect(refineCatalog(admin, () => {})).toMatchObject({ hidden: 0 });
 	});
 	it('migrates recognized old beamline spellings and reports unknown tags without losing them', () => {
 		const id = skill('legacy-contexts');

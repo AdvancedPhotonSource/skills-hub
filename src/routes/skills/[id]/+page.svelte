@@ -17,6 +17,7 @@
 	import RepositoryLink from '$lib/components/RepositoryLink.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
+	import OwnerLinks from '$lib/components/OwnerLinks.svelte';
 	import { sourceUrl, repositoryUrl } from '$lib/source';
 	let { data } = $props();
 	const details = $derived(data.revision.details);
@@ -66,10 +67,9 @@
 			</div>
 		</div>
 		<div class="attribution">
-			<span class="avatar">{data.skill.maintainerName.slice(0, 1).toUpperCase()}</span><a
-				href={`${base}/?author=${encodeURIComponent(data.skill.maintainerUsername)}`}
-				>Maintained by {data.skill.maintainerName}</a
-			><span class="separator"></span><Clock size={13} /><time datetime={data.revision.createdAt}
+			<OwnerLinks owners={data.skill.owners} /><span class="separator"></span><Clock
+				size={13}
+			/><time datetime={data.revision.createdAt}
 				>{new Date(data.revision.createdAt).toLocaleDateString('en-US', {
 					month: 'short',
 					day: 'numeric',
@@ -359,14 +359,6 @@
 		font-size: 11px;
 		flex-wrap: wrap;
 		margin: 23px 0 6px;
-	}
-	.attribution > a {
-		color: var(--muted);
-	}
-	.attribution .avatar {
-		width: 23px;
-		height: 23px;
-		font-size: 10px;
 	}
 	.separator {
 		height: 12px;
