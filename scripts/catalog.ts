@@ -120,6 +120,17 @@ export const starterCatalog: {
 				role: 'Beamline scientist',
 				example:
 					'In APEXA, generate a self-contained HTML report from this completed calibration run and its ESAF. Include bound-limited parameters and quote the latest experiment logbook entries with their timestamps.'
+			},
+			{
+				name: 'motor-control',
+				directory: '.agents/skills/motor-control',
+				categories: ['controls'],
+				tags: ['apexa', 'epics', 'motor-control'],
+				role: 'Beamline scientist',
+				sourceUrl:
+					'https://github.com/AdvancedPhotonSource/APEXA-APS-Beamline-Assistant/tree/6e7e7bc9d3460a06ff772f15473de6f4b09c4e6e/.agents/skills/motor-control',
+				example:
+					'In APEXA, check the status and limits of 20idMotSim:m1, move it to 5.0 within its soft limits, and verify the final readback.'
 			}
 		]
 	}
