@@ -14,6 +14,7 @@ const { detailsFromForm } = await import('../src/lib/server/details');
 const {
 	publish,
 	getSkill,
+	canManage,
 	requireOwner,
 	revisionFor,
 	readPackageFile,
@@ -119,6 +120,53 @@ describe('accounts and ownership', () => {
 		expect(getSkill(skillId).revision).toBe(1);
 		expect(getSkill(skillId).ownerId).toBe(alice.id);
 	});
+	it.each(['skill', 'mcp'] as const)(
+		'restricts %s management to current owners, even for admins and legacy maintainers',
+		(type) => {
+			const form = new FormData();
+			form.set('applicationType', type);
+			form.set('instructions', 'Connect to the server.');
+			const packageData =
+				type === 'mcp'
+					? mcpPackage('owner-only-mcp', 'Owner-only tools', 'Connect to the server.')
+					: validatePackage([
+							{
+								path: 'SKILL.md',
+								data: Buffer.from(original.toString().replace('test-science', 'owner-only-skill')),
+								mode: 0o644
+							}
+						]);
+			const meta = { ...metadata, ...detailsFromForm(form) };
+			const id = publish(alice, packageData, meta);
+			const before = revisionFor(id);
+			for (const role of ['reader', 'admin', 'maintainer']) {
+				const outsider = { ...bob, isAdmin: role === 'admin' };
+				if (role === 'maintainer')
+					db.prepare('UPDATE skills SET maintainer_id=? WHERE id=?').run(bob.id, id);
+				expect(canManage(getSkill(id), outsider)).toBe(false);
+				expect(() => requireOwner(id, outsider)).toThrow('Only the owner');
+				expect(() => publish(outsider, packageData, meta, { id, expected: 1 })).toThrow(
+					'Only the owner'
+				);
+				expect(() => updateOwners(id, outsider, [bob.id])).toThrow('Only the owner');
+				expect(() => deleteEntry(id, outsider, 1)).toThrow('Only the owner');
+				expect(searchSkills(new URLSearchParams(), outsider).skills.map((s) => s.id)).not.toContain(
+					id
+				);
+			}
+			expect(revisionFor(id)).toEqual(before);
+			expect(canManage(getSkill(id), alice)).toBe(true);
+			updateOwners(id, alice, [alice.id, bob.id]);
+			expect(canManage(getSkill(id), bob)).toBe(true);
+			publish(bob, packageData, meta, { id, expected: 1 });
+			updateOwners(id, alice, [alice.id]);
+			expect(canManage(getSkill(id), bob)).toBe(false);
+			expect(() => deleteEntry(id, bob, 2)).toThrow('Only the owner');
+			db.prepare('UPDATE skills SET archived=1 WHERE id=?').run(id);
+			expect(() => getSkill(id, { ...bob, isAdmin: true })).toThrow('not found');
+			deleteEntry(id, alice, 2);
+		}
+	);
 	it('limits repeated authentication attempts', () => {
 		expect(allowAttempt('rate-test', 2)).toBe(true);
 		expect(allowAttempt('rate-test', 2)).toBe(true);

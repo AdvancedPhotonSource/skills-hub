@@ -55,12 +55,7 @@ export function getSkill(id: string, owner?: User | null) {
 }
 
 export function canManage(skill: Skill, user?: User | null) {
-	return Boolean(
-		user &&
-		(user.isAdmin ||
-			skill.maintainerId === user.id ||
-			skill.owners.some((owner) => owner.id === user.id))
-	);
+	return Boolean(user && skill.owners.some((owner) => owner.id === user.id));
 }
 
 export function requireOwner(id: string, user: User | null) {
@@ -114,10 +109,10 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 	const limit = 20;
 	const where = [
 		owner
-			? '(s.owner_id = ? OR s.maintainer_id = ? OR EXISTS (SELECT 1 FROM skill_coowners WHERE skill_id=s.id AND user_id=?))'
+			? '(s.owner_id = ? OR EXISTS (SELECT 1 FROM skill_coowners WHERE skill_id=s.id AND user_id=?))'
 			: 's.archived = 0'
 	];
-	const values: (string | number)[] = owner ? [owner.id, owner.id, owner.id] : [];
+	const values: (string | number)[] = owner ? [owner.id, owner.id] : [];
 	for (const key of ['applicationType', 'provenance'] as const) {
 		const value = params.get(key === 'applicationType' ? 'type' : key);
 		if (value) {

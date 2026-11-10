@@ -11,6 +11,7 @@ export async function signIn(
 		provider?: 'local' | 'entra';
 		expired?: boolean;
 		displayName?: string;
+		isAdmin?: boolean;
 	} = {}
 ) {
 	const db = new Database(join(process.env.E2E_DATA_DIR!, 'hub.sqlite'));
@@ -18,10 +19,11 @@ export async function signIn(
 		{ id: string } | undefined;
 	if (!user) {
 		user = { id: randomUUID() };
-		db.prepare('INSERT INTO users (id, username, display_name) VALUES (?, ?, ?)').run(
+		db.prepare('INSERT INTO users (id, username, display_name, is_admin) VALUES (?, ?, ?, ?)').run(
 			user.id,
 			username,
-			options.displayName || username
+			options.displayName || username,
+			Number(options.isAdmin || false)
 		);
 		db.prepare(
 			"INSERT INTO identities (user_id, provider, subject, provider_username) VALUES (?, 'entra', ?, ?)"

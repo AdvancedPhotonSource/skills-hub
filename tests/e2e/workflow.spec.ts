@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type BrowserContext } from '@playwright/test';
 import { unzipSync, zipSync } from 'fflate';
 import AxeBuilder from '@axe-core/playwright';
 import { signIn } from './session';
@@ -6,6 +6,23 @@ import { signIn } from './session';
 const source =
 	'---\nname: browser-test-skill\ndescription: Explore HDF5 arrays and metadata with Python\nmetadata:\n  source-repository: https://github.com/AdvancedPhotonSource/lauelab\n---\n\n# Explore HDF5 data\n\nRead metadata before loading arrays.\n';
 const origin = 'http://127.0.0.1:4173';
+
+async function expectReadOnly(context: BrowserContext, path: string) {
+	const page = await context.newPage();
+	await page.goto(path);
+	await expect(page.getByRole('link', { name: /^Manage (skill|MCP)$/ })).toHaveCount(0);
+	await page.goto('/my-skills');
+	await expect(page.locator(`a[href="${path}"]`)).toHaveCount(0);
+	expect((await context.request.get(`${path}/edit`)).status()).toBe(403);
+	for (const action of ['preview', 'publish', 'refresh', 'owners', 'delete']) {
+		const response = await context.request.post(`${path}/edit?/${action}`, {
+			headers: { origin },
+			form: { expected: '1', owner: 'site-admin', expectedOwners: '[]' }
+		});
+		expect(await response.json()).toMatchObject({ type: 'failure', status: 403 });
+	}
+	await page.close();
+}
 
 test('SSO users publish skills without approval, discover, download, protect ownership, and revise', async ({
 	page,
@@ -176,6 +193,8 @@ test('SSO users publish skills without approval, discover, download, protect own
 		form: { owner: 'other-user', expectedOwners: '[]' }
 	});
 	expect(await ownerAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
+	await signIn(attacker, 'site-admin', { isAdmin: true });
+	await expectReadOnly(attacker, skillPath);
 	const csrf = await page.request.post(`${skillPath}/edit?/delete`, {
 		headers: { origin: 'https://outside.example' },
 		form: { expected: '1' }
@@ -256,6 +275,7 @@ test('SSO users publish skills without approval, discover, download, protect own
 	expect(Buffer.from(mcpZip['browser-test-skill/references/sources.md']).toString()).toBe(
 		reference
 	);
+	await expectReadOnly(attacker, skillPath);
 	await page.goto(`${skillPath}/edit`);
 	await page.getByRole('button', { name: 'Delete entry', exact: true }).click();
 	await expect(page).toHaveURL(/\/my-skills$/);

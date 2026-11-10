@@ -113,7 +113,7 @@ describe('catalog refinement', () => {
 				)
 		).toBe(false);
 	});
-	it('assigns each Genesis entry to its credited author or uploader, preserving files, maintenance access and history', () => {
+	it('assigns each Genesis entry to its credited author or uploader, preserving files and history', () => {
 		const genesis = starterCatalog.find((source) => source.repository === genesisRepository)!;
 		const ids = genesis.skills.map((entry) =>
 			skill(entry.name, genesisRepository, entry.directory || `skills/${entry.name}`)
@@ -127,7 +127,8 @@ describe('catalog refinement', () => {
 			expect(current.displayName).toBe(entry.name === 'academy' ? 'Ian Foster' : 'Matt Baughman');
 			expect(current.upstreamAuthor).toBe(catalogMetadata(entry, genesisRepository).upstreamAuthor);
 			expect(current.maintainerId).toBe(admin.id);
-			expect(requireOwner(id, admin).id).toBe(id);
+			expect(() => requireOwner(id, admin)).toThrow('Only the owner');
+			expect(requireOwner(id, userById(current.ownerId)).id).toBe(id);
 			expect(
 				db.prepare('SELECT 1 FROM identities WHERE user_id=?').get(current.ownerId)
 			).toBeUndefined();
@@ -231,10 +232,12 @@ describe('catalog refinement', () => {
 		const id = skill('aps-gsas-ii-powder-refinement');
 		const revision = revisionFor(id);
 		expect(refineCatalog(admin, () => {})).toMatchObject({ hidden: 1 });
-		expect(getSkill(id, admin)).toMatchObject({
+		const owner = userById(catalogOwner('brian-toby'))!;
+		expect(getSkill(id, owner)).toMatchObject({
 			archived: true,
 			ownerId: catalogOwner('brian-toby')
 		});
+		expect(() => getSkill(id, admin)).toThrow('not found');
 		expect(() => getSkill(id, other)).toThrow('not found');
 		expect(
 			searchSkills(new URLSearchParams({ q: 'aps-gsas-ii-powder-refinement', exact: '1' })).total
@@ -253,7 +256,7 @@ describe('catalog refinement', () => {
 				{ env: process.env, encoding: 'utf8' }
 			)
 		).toContain('Hidden; import skipped');
-		expect(getSkill(id, admin).archived).toBe(true);
+		expect(getSkill(id, owner).archived).toBe(true);
 		expect(revisionFor(id)).toEqual(revision);
 		expect(readPackageFile(revision, 'scripts/run.sh').toString()).toContain('exit 0');
 		expect(refineCatalog(admin, () => {})).toMatchObject({ hidden: 0 });

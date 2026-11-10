@@ -1,4 +1,5 @@
 import { db } from '../src/lib/server/db';
+import { userById } from '../src/lib/server/auth';
 import {
 	deleteEntry,
 	getSkill,
@@ -51,17 +52,22 @@ export function removeFromCatalog(skill: Skill) {
 
 export function refineCatalog(admin: User, log: (message: string) => void = console.log) {
 	if (!admin.isAdmin) throw new Error('Catalog cleanup requires a Hub administrator.');
-	const entries = db.prepare('SELECT id FROM skills ORDER BY name').all() as { id: string }[];
+	const entries = db.prepare('SELECT id, owner_id FROM skills ORDER BY name').all() as {
+		id: string;
+		owner_id: string;
+	}[];
 	const sharedOwner = db
 		.prepare('SELECT id, display_name FROM users WHERE default_maintainer=1')
 		.get() as { id: string; display_name: string } | undefined;
 	if (!sharedOwner && db.prepare("SELECT 1 FROM skills WHERE owner_id='aps-curated-library'").get())
 		throw new Error('Configure the default maintainer before transferring shared-library entries.');
 	const counts = { removed: 0, hidden: 0, reassigned: 0, revised: 0, unresolved: 0 };
-	for (const { id } of entries) {
-		const skill = getSkill(id, admin);
+	for (const { id, owner_id } of entries) {
+		// Offline catalog maintenance acts as the entry owner, not via a site-admin bypass.
+		const owner = userById(owner_id)!;
+		const skill = getSkill(id, owner);
 		if (removeFromCatalog(skill)) {
-			deleteEntry(id, admin, skill.revision);
+			deleteEntry(id, owner, skill.revision);
 			log(`Removed ${skill.applicationType}: ${skill.name}`);
 			counts.removed++;
 			continue;
@@ -91,7 +97,7 @@ export function refineCatalog(admin: User, log: (message: string) => void = cons
 				data: readPackageFile(revision, file.path)
 			}));
 			publish(
-				admin,
+				owner,
 				{
 					name: skill.name,
 					description: skill.description,
@@ -116,10 +122,10 @@ export function refineCatalog(admin: User, log: (message: string) => void = cons
 		const localOwners = localCatalogOwners(skill.name);
 		if (localOwners) {
 			if (JSON.stringify(skill.owners.map((owner) => owner.id)) !== JSON.stringify(localOwners)) {
-				updateOwners(id, admin, localOwners);
+				updateOwners(id, owner, localOwners);
 				counts.reassigned++;
 				log(
-					`Owners: ${skill.name} → ${getSkill(id, admin)
+					`Owners: ${skill.name} → ${getSkill(id, userById(localOwners[0]))
 						.owners.map((owner) => owner.displayName)
 						.join(', ')}`
 				);

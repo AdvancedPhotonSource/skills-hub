@@ -60,7 +60,7 @@ try {
 			entry.owner_id === 'aps-example-library' ||
 			(entry.owner_id === 'aps-curated-library' && removed.has(entry.name))
 		) {
-			deleteEntry(entry.id, maintainer, entry.revision);
+			deleteEntry(entry.id, userById(entry.owner_id)!, entry.revision);
 			console.log(`Deleted ${entry.name}`);
 			continue;
 		}
@@ -99,11 +99,12 @@ try {
 	const discovery = localSkills.find((entry) => entry.name === 'aps-hub-discovery')!;
 	const file = readFileSync(new URL('../skills/aps-hub-discovery/SKILL.md', import.meta.url));
 	const existing = db
-		.prepare('SELECT id, revision FROM skills WHERE name=? AND maintainer_id=?')
-		.get(discovery.name, maintainer.id) as { id: string; revision: number } | undefined;
+		.prepare('SELECT id, owner_id, revision FROM skills WHERE name=? AND maintainer_id=?')
+		.get(discovery.name, maintainer.id) as
+		{ id: string; owner_id: string; revision: number } | undefined;
 	if (!existing || !readPackageFile(revisionFor(existing.id), 'SKILL.md').equals(file)) {
 		publish(
-			maintainer,
+			existing ? userById(existing.owner_id)! : maintainer,
 			validatePackage([{ path: 'SKILL.md', data: file, mode: 0o644 }]),
 			catalogMetadata(discovery),
 			existing ? { id: existing.id, expected: existing.revision } : undefined

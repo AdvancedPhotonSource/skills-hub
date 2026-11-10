@@ -56,13 +56,14 @@ try {
 			const ownerId = ownership ? catalogOwner(ownership.login) : owner.id;
 			const rows = db
 				.prepare(
-					"SELECT id FROM skills WHERE (owner_id=? OR owner_id=? OR maintainer_id=? OR owner_id='aps-curated-library') AND name=?"
+					"SELECT id, owner_id FROM skills WHERE (owner_id=? OR owner_id=? OR maintainer_id=? OR owner_id='aps-curated-library') AND name=?"
 				)
-				.all(owner.id, ownerId, owner.id, entry.name) as { id: string }[];
+				.all(owner.id, ownerId, owner.id, entry.name) as { id: string; owner_id: string }[];
 			if (rows.length > 1)
 				throw new Error(`Multiple catalog entries named ${entry.name}; inspect before importing.`);
 			const row = rows[0];
-			const existing = row ? getSkill(row.id, owner) : null;
+			const publisher = row ? userById(row.owner_id)! : owner;
+			const existing = row ? getSkill(row.id, publisher) : null;
 			if (
 				existing &&
 				(existing.source?.repository !== source.repository ||
@@ -93,7 +94,7 @@ try {
 			const pkg = await importDirectory(snapshot, directory, source.ref);
 			if (pkg.name !== entry.name) throw new Error(`Unexpected upstream skill name: ${entry.name}`);
 			const skillId = publish(
-				owner,
+				publisher,
 				pkg,
 				meta,
 				existing ? { id: existing.id, expected: existing.revision } : undefined
@@ -124,13 +125,17 @@ try {
 		if (pkg.name !== entry.name) throw new Error(`Unexpected local skill name: ${entry.name}`);
 		const rows = db
 			.prepare(
-				"SELECT id FROM skills WHERE (owner_id=? OR owner_id=? OR maintainer_id=? OR owner_id='aps-curated-library') AND name=?"
+				"SELECT id, owner_id FROM skills WHERE (owner_id=? OR owner_id=? OR maintainer_id=? OR owner_id='aps-curated-library') AND name=?"
 			)
-			.all(owner.id, ownerIds?.[0] || owner.id, owner.id, entry.name) as { id: string }[];
+			.all(owner.id, ownerIds?.[0] || owner.id, owner.id, entry.name) as {
+			id: string;
+			owner_id: string;
+		}[];
 		if (rows.length > 1)
 			throw new Error(`Multiple catalog entries named ${entry.name}; inspect before importing.`);
 		const row = rows[0];
-		const existing = row ? getSkill(row.id, owner) : null;
+		const publisher = row ? userById(row.owner_id)! : owner;
+		const existing = row ? getSkill(row.id, publisher) : null;
 		if (existing?.source)
 			throw new Error(`Cannot replace an upstream import with local files: ${entry.name}`);
 		const meta = metadata(entry);
@@ -157,17 +162,17 @@ try {
 					JSON.stringify(existing[key as keyof typeof existing]) === JSON.stringify(value)
 			)
 		) {
-			if (ownerIds) updateOwners(existing.id, owner, ownerIds);
+			if (ownerIds) updateOwners(existing.id, publisher, ownerIds);
 			console.log(`Already published: ${entry.name}`);
 			continue;
 		}
 		const skillId = publish(
-			owner,
+			publisher,
 			pkg,
 			meta,
 			existing ? { id: existing.id, expected: existing.revision } : undefined
 		);
-		if (ownerIds) updateOwners(skillId, owner, ownerIds);
+		if (ownerIds) updateOwners(skillId, publisher, ownerIds);
 		console.log(`Published ${entry.name}: ${pkg.files.length} files → /skills/${skillId}`);
 	}
 } finally {

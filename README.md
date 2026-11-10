@@ -20,4 +20,4 @@ All site content requires an authenticated SSO session, enforced on the server.
 
 A Hub profile linked to your Argonne identity tracks contributions and permissions.
 Every SSO-signed-in user can publish skills and MCPs without administrator approval.
-Editing and deleting existing entries is restricted to their owners, maintainers, and administrators.
+Editing and deleting existing entries is restricted to their owners, including explicitly added co-owners.
