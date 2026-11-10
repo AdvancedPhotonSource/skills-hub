@@ -14,6 +14,8 @@ const publicRoutes = new Set([
 ]);
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// SvelteKit 2 workaround for GHSA-pfhg-q3qv-9q6r (protocol-relative form actions).
+	if (event.url.pathname.startsWith('//')) error(400, 'Invalid request path.');
 	// Applies to form actions and JSON endpoints, including unauthenticated writes.
 	if (!['GET', 'HEAD', 'OPTIONS'].includes(event.request.method)) {
 		if (event.request.headers.get('origin') !== event.url.origin)

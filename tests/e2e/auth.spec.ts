@@ -25,6 +25,24 @@ const protectedPaths = [
 	'/sign-in/../api/v1/skills'
 ];
 
+test('rejects protocol-relative action paths before authentication or navigation', async ({
+	context
+}) => {
+	const origin = 'http://127.0.0.1:4173';
+	for (const signedIn of [false, true]) {
+		if (signedIn) await signIn(context, 'redirect-check');
+		for (const method of ['GET', 'POST']) {
+			const response = await context.request.fetch(`${origin}//example.org/upload?/publish`, {
+				method,
+				headers: { origin },
+				maxRedirects: 0
+			});
+			expect(response.status()).toBe(400);
+			expect(response.headers().location).toBeUndefined();
+		}
+	}
+});
+
 test('every catalog surface is blocked server-side without an SSO session', async ({ request }) => {
 	for (const path of protectedPaths) {
 		const response = await request.get(path, { maxRedirects: 0 });
