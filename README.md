@@ -1,12 +1,12 @@
 # APS Skills Hub
 
-An internal catalog of Agent Skills and MCP servers for Argonne’s Advanced Photon Source. Built with SvelteKit, TypeScript, Node.js, and SQLite.
+An internal catalog of agent skills and MCP servers for the APS. Built with SvelteKit, TypeScript, Node.js, and SQLite.
 
 **Status: Beta.** Features and interfaces are still evolving.
 
 ## Shared instance
 
-[https://kairo.aps.anl.gov:8443](https://kairo.aps.anl.gov:8443) — available on Argonne networks and VPN.
+[https://kairo.aps.anl.gov:8443](https://kairo.aps.anl.gov:8443) — available on Argonne networks and VPN. 
 
 ## API
 
@@ -14,10 +14,10 @@ A read-only REST API supports skill search, skill details, and category discover
 
 ## Authentication
 
-Skills Hub uses **Microsoft Entra ID single sign-on (SSO) via OpenID Connect (OIDC)**.
+The APS Skills Hub uses **Microsoft Entra ID single sign-on (SSO) via OpenID Connect (OIDC)**.
 Sign in with your Argonne credentials; there is no separate Skills Hub password login.
 All site content requires an authenticated SSO session, enforced on the server.
 
-A Hub profile linked to your Argonne identity tracks contributions and permissions.
+A "Hub profile" linked to your Argonne identity tracks contributions and permissions.
 Every SSO-signed-in user can publish skills and MCPs without administrator approval.
-Editing and deleting existing entries is restricted to their owners, including explicitly added co-owners.
+Editing and deleting existing entries is restricted to their owners.
