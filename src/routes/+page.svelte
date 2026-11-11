@@ -76,7 +76,7 @@
 		</div>
 		{#if !searching}<div class="hero-note">
 				<div class="note-icon"><Layers size={24} strokeWidth={1.5} /></div>
-				<h2>A little expertise.<br />A better starting point.</h2>
+				<h2>Internal expertise.<br />A better starting point.</h2>
 				<p>Explore a skill, read the instructions, and bring it into the tools you already use.</p>
 				<a href={`${base}/categories`}>Browse by category <ArrowRight size={15} /></a>
 			</div>{/if}
