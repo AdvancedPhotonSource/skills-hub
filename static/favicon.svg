@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#175ac6"/><g fill="none" stroke="#fff" stroke-width="2"><ellipse cx="20" cy="20" rx="13" ry="6" transform="rotate(-35 20 20)"/><path d="M9 30 30 9"/></g><circle cx="20" cy="20" r="3" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="327 -8 101 101">
+	<title>Argonne National Laboratory</title>
+	<path d="M362.16 55.43h-30.79l15.4 26.66 15.39-26.66z" fill="#007836"/>
+	<path d="M392.95 55.43h-30.79l-15.39 26.66h61.58l-15.39-26.66Z" fill="#0082ca"/>
+	<path d="M423.74 55.43h-30.79l15.4 26.66 15.39-26.66z" fill="#0b1f8f"/>
+	<path d="M392.95 2.1h-30.79l15.4 26.66L392.95 2.1z" fill="#a12b2f"/>
+	<path d="m392.95 2.1-15.39 26.66 15.39 26.67h30.79L392.95 2.1z" fill="#cd202c"/>
+	<path d="m362.16 55.43 15.39-26.67L362.16 2.1l-30.79 53.33h30.79Z" fill="#77b300"/>
+</svg>
