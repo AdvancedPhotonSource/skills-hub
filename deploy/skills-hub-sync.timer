@@ -1,0 +1,10 @@
+[Unit]
+Description=Check imported Skills Hub packages hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=skills-hub-sync.service
+
+[Install]
+WantedBy=timers.target

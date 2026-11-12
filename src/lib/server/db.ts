@@ -143,3 +143,22 @@ if ((db.pragma('user_version', { simple: true }) as number) < 9) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 10) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE upstream_sync (
+				skill_id TEXT PRIMARY KEY REFERENCES skills(id) ON DELETE CASCADE,
+				source_key TEXT NOT NULL, checked_revision INTEGER NOT NULL DEFAULT 0,
+				observed_commit TEXT, fingerprint TEXT,
+				last_checked_at TEXT, last_success_at TEXT,
+				failures INTEGER NOT NULL DEFAULT 0, next_check_at INTEGER NOT NULL DEFAULT 0,
+				error TEXT
+			);
+			CREATE TABLE upstream_sync_lock (
+				id INTEGER PRIMARY KEY CHECK (id = 1), token TEXT NOT NULL, expires_at INTEGER NOT NULL
+			);
+			PRAGMA user_version = 10;
+		`);
+	})();
+}

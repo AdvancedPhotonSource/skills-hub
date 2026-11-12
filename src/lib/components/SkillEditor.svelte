@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { Upload, FileText, ChevronRight, Check, Eye, GitBranch, RefreshCw } from '@lucide/svelte';
+	import { Upload, FileText, ChevronRight, Check, Eye, GitBranch } from '@lucide/svelte';
 	import { categories, roles, techniques } from '$lib/taxonomy';
 	import { onMount, untrack } from 'svelte';
 	import McpFields from './McpFields.svelte';
@@ -90,26 +90,6 @@
 							>{skill.source.repository} / {skill.source.directory || '(root)'}</a
 						>
 					</p>
-					<p class="muted small-text">
-						Refresh to retrieve the latest source files. Previous downloads remain available.
-					</p>
-					<form
-						method="POST"
-						action="?/refresh"
-						use:enhance={() => {
-							pending = true;
-							return async ({ update }) => {
-								await update();
-								pending = false;
-							};
-						}}
-					>
-						<input type="hidden" name="expected" value={skill.revision} /><button
-							class="button"
-							disabled={pending}
-							><RefreshCw size={15} />{pending ? 'Checking GitHub…' : 'Refresh from GitHub'}</button
-						>
-					</form>
 				</section>{/if}
 			<form
 				method="POST"

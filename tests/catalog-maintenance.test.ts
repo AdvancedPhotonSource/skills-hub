@@ -284,4 +284,22 @@ describe('catalog refinement', () => {
 		expect(getSkill(unknown).contexts).toEqual(['retired-beamline']);
 		expect(messages).toContain('Needs context review: unknown-contexts: retired-beamline');
 	});
+	it('reapplying starter metadata preserves an already-updated upstream package', () => {
+		const row = db.prepare("SELECT id FROM skills WHERE name='add-plugin'").get() as { id: string };
+		const before = revisionFor(row.id);
+		expect(before.source?.commit).toBe('a'.repeat(40));
+		const run = () =>
+			execFileSync(
+				process.execPath,
+				['--import', 'tsx', 'scripts/import-catalog.ts', '--skill', 'add-plugin'],
+				{ env: process.env, encoding: 'utf8' }
+			);
+		expect(run()).toContain('Imported add-plugin');
+		const after = revisionFor(row.id);
+		expect(after.source).toEqual(before.source);
+		expect(after.files).toEqual(before.files);
+		expect(readPackageFile(after, 'SKILL.md')).toEqual(readPackageFile(before, 'SKILL.md'));
+		expect(run()).toContain('Already imported: add-plugin');
+		expect(revisionFor(row.id)).toEqual(after);
+	});
 });

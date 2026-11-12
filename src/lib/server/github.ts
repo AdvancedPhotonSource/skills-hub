@@ -19,6 +19,12 @@ const legalName =
 	/^(license|licence|copying|notice|attribution|third[_-]party[_-]notices)([._-].*)?$/i;
 const encodePath = (path: string) => path.split('/').map(encodeURIComponent).join('/');
 
+export class GitHubRateLimitError extends HubError {
+	constructor(public retryAt: number) {
+		super('GitHub request limit reached. Try later or configure a server-side GITHUB_TOKEN.', 503);
+	}
+}
+
 export function parseRepository(input: string, ref = '') {
 	let url: URL;
 	try {
@@ -73,9 +79,12 @@ async function request(url: string, limit: number, signal: AbortSignal) {
 		if (!response.ok) {
 			await response.body?.cancel();
 			if ([403, 429].includes(response.status))
-				throw new HubError(
-					'GitHub request limit reached. Try later or configure a server-side GITHUB_TOKEN.',
-					503
+				throw new GitHubRateLimitError(
+					Math.max(
+						Date.now() + 60000,
+						Number(response.headers.get('x-ratelimit-reset') || 0) * 1000,
+						Date.now() + (Number(response.headers.get('retry-after')) || 60) * 1000
+					)
 				);
 			if (response.status === 404)
 				throw new HubError('Public repository, revision, or file not found on GitHub.');
@@ -169,14 +178,9 @@ export async function inspectRepository(
 	return snapshot;
 }
 
-export async function importDirectory(
-	snapshot: RepositorySnapshot,
-	directory: string,
-	ref = snapshot.ref
-) {
+function directoryEntries(snapshot: RepositorySnapshot, directory: string) {
 	if ((directory && !safePath(directory)) || !snapshot.directories.includes(directory))
 		throw new HubError('Select a skill directory from this repository.');
-	parseRepository(`https://github.com/${snapshot.repository}`, ref);
 	const prefix = directory ? `${directory}/` : '';
 	const selected = snapshot.tree.filter(
 		(entry) => entry.type !== 'tree' && entry.path.startsWith(prefix)
@@ -217,6 +221,31 @@ export async function importDirectory(
 				'Skill contains unsupported links, submodules, paths, or oversized files.'
 			);
 	}
+	return entries.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+}
+
+// The same selection is used for detection and import, including inherited legal notices.
+export function directoryFingerprint(snapshot: RepositorySnapshot, directory: string) {
+	return createHash('sha256')
+		.update(
+			JSON.stringify(
+				directoryEntries(snapshot, directory).map(({ entry, path }) => [
+					path,
+					entry.sha,
+					entry.mode
+				])
+			)
+		)
+		.digest('hex');
+}
+
+export async function importDirectory(
+	snapshot: RepositorySnapshot,
+	directory: string,
+	ref = snapshot.ref
+) {
+	parseRepository(`https://github.com/${snapshot.repository}`, ref);
+	const entries = directoryEntries(snapshot, directory);
 	const signal = AbortSignal.timeout(90000);
 	const files: PackageFile[] = [];
 	// Bounded concurrency keeps large reference packages from flooding upstream.

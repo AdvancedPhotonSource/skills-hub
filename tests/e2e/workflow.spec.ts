@@ -14,7 +14,7 @@ async function expectReadOnly(context: BrowserContext, path: string) {
 	await page.goto('/my-skills');
 	await expect(page.locator(`a[href="${path}"]`)).toHaveCount(0);
 	expect((await context.request.get(`${path}/edit`)).status()).toBe(403);
-	for (const action of ['preview', 'publish', 'refresh', 'owners', 'delete']) {
+	for (const action of ['preview', 'publish', 'owners', 'delete']) {
 		const response = await context.request.post(`${path}/edit?/${action}`, {
 			headers: { origin },
 			form: { expected: '1', owner: 'site-admin', expectedOwners: '[]' }
@@ -183,11 +183,6 @@ test('SSO users publish skills without approval, discover, download, protect own
 		form: { expected: '1' }
 	});
 	expect(await deleteAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
-	const refreshAttempt = await attacker.request.post(`${skillPath}/edit?/refresh`, {
-		headers: { origin },
-		form: { expected: '1' }
-	});
-	expect(await refreshAttempt.json()).toMatchObject({ type: 'failure', status: 403 });
 	const ownerAttempt = await attacker.request.post(`${skillPath}/edit?/owners`, {
 		headers: { origin },
 		form: { owner: 'other-user', expectedOwners: '[]' }

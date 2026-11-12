@@ -4,6 +4,7 @@ import {
 	classification,
 	getSkill,
 	publish,
+	readPackageFile,
 	revisionFor,
 	updateOwners
 } from '../src/lib/server/catalog';
@@ -72,7 +73,7 @@ try {
 				throw new Error(`Conflicting source for ${entry.name}; inspect it before proceeding.`);
 			const meta = metadata(entry, source.repository);
 			if (
-				existing?.source?.commit === source.commit &&
+				existing &&
 				JSON.stringify(existing.categories) === JSON.stringify(meta.categories) &&
 				JSON.stringify(existing.tags) === JSON.stringify(meta.tags) &&
 				existing.role === meta.role &&
@@ -87,11 +88,26 @@ try {
 				console.log(`Already imported: ${entry.name}`);
 				continue;
 			}
-			snapshot ??= await inspectRepository(
-				`https://github.com/${source.repository}`,
-				source.commit
-			);
-			const pkg = await importDirectory(snapshot, directory, source.ref);
+			// Starter pins bootstrap new entries only. Existing imports follow their upstream
+			// ref; catalog maintenance must never roll their files back to the starter pin.
+			let pkg;
+			if (existing) {
+				const revision = revisionFor(existing.id);
+				pkg = validatePackage(
+					revision.files.map((file) => ({
+						path: file.path,
+						data: readPackageFile(revision, file.path),
+						mode: file.mode || 0o644
+					}))
+				);
+				pkg.source = existing.source!;
+			} else {
+				snapshot ??= await inspectRepository(
+					`https://github.com/${source.repository}`,
+					source.commit
+				);
+				pkg = await importDirectory(snapshot, directory, source.ref);
+			}
 			if (pkg.name !== entry.name) throw new Error(`Unexpected upstream skill name: ${entry.name}`);
 			const skillId = publish(
 				publisher,

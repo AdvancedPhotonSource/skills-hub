@@ -1,0 +1,15 @@
+[Unit]
+Description=Update imported Skills Hub packages from upstream
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/local/haskels/skills-hub/current
+ExecStart=/local/haskels/skills-hub/runtime/node/bin/node --import tsx scripts/sync-upstreams.ts
+Environment=NODE_ENV=production
+Environment=DATA_DIR=/local/haskels/skills-hub/data
+EnvironmentFile=-/local/haskels/skills-hub/config/github.env
+UMask=0077
+NoNewPrivileges=true
+TimeoutStartSec=50min

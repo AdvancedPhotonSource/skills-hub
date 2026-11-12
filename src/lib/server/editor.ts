@@ -100,31 +100,6 @@ export const editorActions = {
 		}
 		redirect(303, `${base}/skills/${id}`);
 	},
-	refresh: async ({ request, locals, params }: RequestEvent) => {
-		if (!locals.user) redirect(303, `${base}/sign-in`);
-		try {
-			if (!params.id) throw new HubError('Skill not found.', 404);
-			const skill = requireOwner(params.id, locals.user);
-			requirePublisher(locals.user);
-			if (!skill.source) throw new HubError('This skill was uploaded locally.');
-			const form = await request.formData();
-			if (Number(form.get('expected')) !== skill.revision)
-				throw new HubError('This skill changed. Reload before refreshing.', 409);
-			if (!allowAttempt(`import:${locals.user.id}`, 30, 3600000))
-				return fail(429, { message: 'Import limit reached. Try again in an hour.' });
-			const snapshot = await inspectRepository(
-				`https://github.com/${skill.source.repository}`,
-				skill.source.ref
-			);
-			if (snapshot.commit === skill.source.commit)
-				return { message: 'Already at the latest source revision.', success: true };
-			const pkg = await importDirectory(snapshot, skill.source.directory);
-			publish(locals.user, pkg, skill, { id: skill.id, expected: skill.revision });
-		} catch (error) {
-			return formError(error);
-		}
-		redirect(303, `${base}/skills/${params.id}`);
-	},
 	delete: async ({ request, locals, params }: RequestEvent) => {
 		if (!locals.user) redirect(303, `${base}/sign-in`);
 		try {
@@ -162,7 +137,7 @@ async function packageFromForm(form: FormData, id?: string) {
 		return pkg;
 	}
 	if (form.get('method') === 'github') {
-		if (id) throw new HubError('Use Refresh from GitHub to update this import.');
+		if (id) throw new HubError('Imported files are managed from their upstream repository.');
 		const commit = String(form.get('commit') || '');
 		if (!/^[a-f0-9]{40}$/.test(commit))
 			throw new HubError('Find skills in the repository before importing.');
