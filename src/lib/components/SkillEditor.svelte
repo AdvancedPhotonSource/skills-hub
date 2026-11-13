@@ -8,6 +8,7 @@
 	import McpFields from './McpFields.svelte';
 	import ContextPicker from './ContextPicker.svelte';
 	import OwnerLinks from './OwnerLinks.svelte';
+	import Markdown from './Markdown.svelte';
 	import type { Skill, ImportSource, Owner } from '$lib/types';
 	import { sourceUrl } from '$lib/source';
 	type Repository = {
@@ -307,7 +308,7 @@
 									</p>{/if}
 								<details>
 									<summary>Review instructions and files</summary>
-									<div class="prose">{@html form.preview.html}</div>
+									<Markdown html={form.preview.html} />
 									<ul>
 										{#each form.preview.files as file}<li>
 												<FileText size={13} />{file.path}<span
@@ -731,7 +732,7 @@
 		color: light-dark(#497454, var(--argonne-green));
 		cursor: pointer;
 	}
-	.package-preview .prose {
+	.package-preview :global(.prose) {
 		margin-top: 20px;
 	}
 	.package-preview ul {

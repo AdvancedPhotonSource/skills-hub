@@ -19,6 +19,7 @@
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
 	import OwnerLinks from '$lib/components/OwnerLinks.svelte';
+	import Markdown from '$lib/components/Markdown.svelte';
 	import { sourceUrl, repositoryUrl } from '$lib/source';
 	let { data } = $props();
 	const details = $derived(data.revision.details);
@@ -154,9 +155,7 @@
 									<FileText size={24} />
 									<h2>Binary file</h2>
 									<p>Download this file to view it in a compatible application.</p>
-								</div>{:else if data.html && !data.raw}<div class="prose">
-									{@html data.html}
-								</div>{:else}
+								</div>{:else if data.html && !data.raw}<Markdown html={data.html} />{:else}
 								<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable source needs keyboard focus.) -->
 								<pre
 									class="raw-source"

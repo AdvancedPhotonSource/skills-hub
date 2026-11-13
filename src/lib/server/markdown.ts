@@ -1,5 +1,8 @@
-import { marked } from 'marked';
+import { Marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
+import { mathExtensions } from './markdown-math';
+
+const marked = new Marked({ extensions: mathExtensions });
 
 export function renderMarkdown(
 	source: string,
@@ -11,8 +14,11 @@ export function renderMarkdown(
 		allowedAttributes: {
 			a: ['href', 'title', 'rel'],
 			code: ['class'],
+			span: ['class'],
+			div: ['class'],
 			pre: ['tabindex', 'role', 'aria-label']
 		},
+		allowedClasses: { span: ['math-inline', 'math-display'], div: ['math-display'] },
 		allowedSchemes: ['http', 'https', 'mailto'],
 		allowProtocolRelative: false,
 		transformTags: {

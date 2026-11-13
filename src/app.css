@@ -516,6 +516,12 @@ fieldset legend {
 	font-size: 14px;
 	overflow-wrap: anywhere;
 }
+.prose .math-display {
+	display: block;
+	max-width: 100%;
+	overflow-x: auto;
+	margin: 1em 0;
+}
 .prose h1 {
 	font-size: 27px;
 	margin: 0 0 20px;
