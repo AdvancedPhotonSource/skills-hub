@@ -81,7 +81,7 @@
 		</p>
 	</div>
 	<div class="editor-layout">
-		<div>
+		<fieldset disabled={!ready} aria-label="Entry editor">
 			{#if form?.message}<div class="notice" class:error={!form.success} role="status">
 					{form.message}
 				</div>{/if}
@@ -111,7 +111,6 @@
 						id="application-type"
 						name="applicationType"
 						bind:value={applicationType}
-						disabled={!ready}
 						><option value="skill">Skill</option><option value="mcp">MCP</option><option
 							value="collection">Collection</option
 						></select
@@ -493,7 +492,7 @@
 					</form>
 				</section>
 			{/if}
-		</div>
+		</fieldset>
 		<aside class="publishing-note">
 			<FileText size={23} strokeWidth={1.4} />
 			<h3>

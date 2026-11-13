@@ -91,9 +91,23 @@ test('publish, browse, download, and manage a collection of skills and MCPs', as
 			.locator('.page-head')
 			.getByRole('link', { name: 'Scientific analysis collection', exact: true })
 	).toBeVisible();
-	await page.goto(`${collectionPath}/edit`);
-	await expect(page.getByRole('checkbox', { name: /grouped-analysis/ })).toBeChecked();
+	let resumeScripts!: () => void;
+	const scriptsReady = new Promise<void>((resolve) => (resumeScripts = resolve));
+	await page.route('**/*', async (route) => {
+		if (route.request().resourceType() === 'script') await scriptsReady;
+		await route.continue();
+	});
+	try {
+		await page.goto(`${collectionPath}/edit`, { waitUntil: 'commit' });
+		await expect(page.getByRole('checkbox', { name: /grouped-analysis/ })).toBeChecked();
+		await expect(page.getByLabel('Description', { exact: true })).toBeDisabled();
+		await expect(page.getByRole('checkbox', { name: /grouped-analysis/ })).toBeDisabled();
+		await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
+	} finally {
+		resumeScripts();
+	}
 	await page.getByLabel('Description', { exact: true }).fill('An updated shared toolkit.');
 	await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+	await expect(page).toHaveURL(collectionPath);
 	await expect(page.locator('.detail-heading')).toContainText('An updated shared toolkit.');
 });
