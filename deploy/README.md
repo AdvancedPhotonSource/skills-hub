@@ -1,3 +1,23 @@
+# Shared HTTPS instance
+
+The canonical URL is `https://skills.aps.anl.gov:8443`, available on Argonne
+networks and VPN. DNS aliases `skills.aps.anl.gov` to `kairo.aps.anl.gov`.
+The TLS certificate must cover both names; the Kairo URL redirects to the alias
+while preserving paths and queries.
+
+On Kairo, install `kairo/Caddyfile` as
+`/local/haskels/skills-hub/config/Caddyfile` and `kairo/skills-hub.conf` as
+`~/.config/systemd/user/skills-hub.service.d/kairo.conf`. Set
+`ENTRA_REDIRECT_URI=https://skills.aps.anl.gov:8443/auth/callback/entra` in
+`/local/haskels/skills-hub/config/entra.env`, with the same Web redirect URI
+registered in Entra. Back up these files before changes, validate Caddy's config,
+then reload the user systemd configuration and restart `skills-hub.service` and
+`skills-hub-https.service`.
+
+Port 443 requires administrator setup on Kairo; the deployed user service uses
+port 8443. A hostname change requires users to sign in again because session
+cookies are host-specific.
+
 # Upstream skill updates
 
 `skills-hub-sync.timer` runs the backend worker every hour against the same

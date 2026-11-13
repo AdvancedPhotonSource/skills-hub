@@ -4,11 +4,11 @@ An internal catalog of agent skills and MCP servers for the APS. Built with Svel
 
 ## Shared instance
 
-[https://kairo.aps.anl.gov:8443](https://kairo.aps.anl.gov:8443) — available on Argonne networks and VPN.
+[https://skills.aps.anl.gov:8443](https://skills.aps.anl.gov:8443) — available on Argonne networks and VPN.
 
 ## API
 
-A read-only REST API supports skill search, skill details, and category discovery. All pages, API reads, file access, and downloads require an Argonne SSO session, enforced on the server. See the [API documentation](https://kairo.aps.anl.gov:8443/docs/api) for endpoints and examples.
+A read-only REST API supports skill search, skill details, and category discovery. All pages, API reads, file access, and downloads require an Argonne SSO session, enforced on the server. See the [API documentation](https://skills.aps.anl.gov:8443/docs/api) for endpoints and examples.
 
 ## Authentication
 

@@ -7,7 +7,7 @@ metadata:
 
 # Find a skill or MCP for an APS workflow
 
-Use the hub URL supplied by the user; otherwise use https://kairo.aps.anl.gov:8443. All catalog reads and downloads require an authenticated Argonne SSO session, as well as Argonne network or VPN access. Use an authenticated browser session when available. If the hub is unreachable or responds with HTTP 401 / a sign-in page, ask the user to sign in and attach search results or relevant entries; do not claim that the catalog has no matches. Never ask the user to paste passwords, client secrets, or session cookies into the conversation.
+Use the hub URL supplied by the user; otherwise use https://skills.aps.anl.gov:8443. All catalog reads and downloads require an authenticated Argonne SSO session, as well as Argonne network or VPN access. Use an authenticated browser session when available. If the hub is unreachable or responds with HTTP 401 / a sign-in page, ask the user to sign in and attach search results or relevant entries; do not claim that the catalog has no matches. Never ask the user to paste passwords, client secrets, or session cookies into the conversation.
 
 1. Identify the requested outcomes, scientific technique, beamline/facility, and environment. Ask a short question only when a missing requirement prevents useful recommendations.
 2. GET `{hub}/api/v1/categories` for workflow categories. Search `{hub}/api/v1/skills?q={encoded terms}` using several short queries and synonyms (for example `xrf`, `fluorescence`, and `2-id-d`). Search terms use AND matching, so do not submit the entire natural-language request as one query. Follow `page` through `pages` when useful.

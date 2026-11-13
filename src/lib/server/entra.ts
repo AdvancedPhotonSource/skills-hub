@@ -22,7 +22,7 @@ export function entraTenant() {
 function settings() {
 	if (!entraEnabled()) throw new Error('Entra sign-in is not configured.');
 	const redirectUri = new URL(
-		process.env.ENTRA_REDIRECT_URI || 'https://kairo.aps.anl.gov:8443/auth/callback/entra'
+		process.env.ENTRA_REDIRECT_URI || 'https://skills.aps.anl.gov:8443/auth/callback/entra'
 	);
 	if (
 		(redirectUri.protocol !== 'https:' &&
