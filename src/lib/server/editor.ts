@@ -115,6 +115,13 @@ export const editorActions = {
 
 async function packageFromForm(form: FormData, id?: string) {
 	const current = id ? revisionFor(id) : null;
+	if (form.get('applicationType') === 'collection') {
+		return mcpPackage(
+			String(form.get('name') || ''),
+			String(form.get('description') || ''),
+			'Browse the collection to view its skills and MCPs. The collection download includes their latest published files.'
+		);
+	}
 	if (form.get('applicationType') === 'mcp') {
 		const pkg = mcpPackage(
 			String(form.get('name') || ''),

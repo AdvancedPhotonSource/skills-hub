@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { FileText, Plug, ArrowUpRight, Download, GitBranch, ExternalLink } from '@lucide/svelte';
+	import {
+		FileText,
+		Plug,
+		Layers,
+		ArrowUpRight,
+		Download,
+		GitBranch,
+		ExternalLink
+	} from '@lucide/svelte';
 	import { categoryName, categoryTone, provenanceName } from '$lib/taxonomy';
 	import { repositoryUrl } from '$lib/source';
 	import type { Skill } from '$lib/types';
@@ -12,17 +20,23 @@
 	{#each skills as skill}
 		{@const repository =
 			skill.mcp?.repository || skill.sourceUrl || (skill.source ? repositoryUrl(skill.source) : '')}
-		<article class="skill-row">
+		<article class="skill-row" class:collection-row={skill.applicationType === 'collection'}>
 			<div class="skill-icon tone" data-tone={categoryTone(skill.categories[0])}>
-				{#if skill.applicationType === 'mcp'}<Plug size={19} strokeWidth={1.6} />{:else}<FileText
+				{#if skill.applicationType === 'collection'}<Layers
 						size={19}
 						strokeWidth={1.6}
-					/>{/if}
+					/>{:else if skill.applicationType === 'mcp'}<Plug
+						size={19}
+						strokeWidth={1.6}
+					/>{:else}<FileText size={19} strokeWidth={1.6} />{/if}
 			</div>
 			<div class="skill-body">
+				{#if skill.applicationType === 'collection'}<div class="collection-label">
+						<Layers size={14} /> Collection <span>{skill.memberCount} entries</span>
+					</div>{/if}
 				<div class="title-row">
 					<a class="skill-name" href={`${base}/skills/${skill.id}`}
-						>{skill.name}<ArrowUpRight size={15} /></a
+						>{skill.collectionTitle || skill.name}<ArrowUpRight size={15} /></a
 					>{#if skill.applicationType === 'mcp'}<span class="badge blue">MCP</span
 						>{/if}{#if skill.provenance !== 'argonne'}<span class="badge"
 							>{provenanceName[skill.provenance]}</span
@@ -72,6 +86,33 @@
 </div>
 
 <style>
+	.collection-label {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		margin-bottom: 12px;
+		color: var(--blue);
+		font-size: 10px;
+		font-weight: 650;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	.collection-label span {
+		margin-left: auto;
+		color: var(--muted);
+		letter-spacing: 0;
+		text-transform: none;
+		font-weight: 400;
+	}
+	.collection-row {
+		background: linear-gradient(135deg, var(--blue-light), transparent 75%);
+	}
+	:global([data-view='grid']) .skill-row.collection-row {
+		border-top: 3px solid var(--blue);
+		box-shadow:
+			0 4px 0 -1px var(--surface),
+			0 5px 0 -1px var(--line);
+	}
 	:global([data-view='grid']) .skill-list {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));

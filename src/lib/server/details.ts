@@ -28,6 +28,8 @@ export function validateDetails(details: Partial<CatalogDetails>): CatalogDetail
 		'relevance'
 	] as const)
 		if (details[key]) form.set(key, details[key]);
+	if (details.collectionTitle) form.set('collectionTitle', details.collectionTitle);
+	for (const id of details.collectionMembers || []) form.append('collectionMember', id);
 	for (const context of details.contexts || []) form.append('contexts', context);
 	for (const technique of details.techniques || []) form.append('technique', technique);
 	if (details.mcp)
@@ -84,7 +86,13 @@ export function detailsFromForm(form: FormData): CatalogDetails {
 	const selected = [...new Set(form.getAll('technique').map(String))];
 	if (selected.some((value) => !techniques.some(([id]) => id === value)))
 		throw new HubError('Choose an available technique.');
-	const applicationType = choice('applicationType', ['skill', 'mcp'], 'skill');
+	const applicationType = choice('applicationType', ['skill', 'mcp', 'collection'], 'skill');
+	const collectionMembers = [...new Set(form.getAll('collectionMember').map(String))];
+	if (
+		applicationType === 'collection' &&
+		(collectionMembers.length < 2 || collectionMembers.length > 100)
+	)
+		throw new HubError('Choose between two and one hundred skills or MCPs for a collection.');
 	let mcp: Mcp | null = null;
 	if (applicationType === 'mcp') {
 		mcp = {
@@ -105,6 +113,12 @@ export function detailsFromForm(form: FormData): CatalogDetails {
 	}
 	return {
 		applicationType,
+		...(applicationType === 'collection'
+			? {
+					collectionTitle: text('collectionTitle', 120),
+					collectionMembers
+				}
+			: {}),
 		contexts,
 		techniques: selected,
 		provenance: choice('provenance', ['argonne', 'external', 'adapted'], 'argonne'),

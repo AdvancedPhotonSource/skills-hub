@@ -20,6 +20,7 @@
 		"curate": "tsx scripts/curate.ts",
 		"refine:catalog": "tsx scripts/refine-catalog.ts",
 		"import:catalog": "tsx scripts/import-catalog.ts",
+		"import:collections": "tsx scripts/import-collections.ts",
 		"admin": "tsx scripts/admin.ts",
 		"format": "prettier --write .",
 		"format:check": "prettier --check ."

@@ -157,7 +157,19 @@ export function validatePackage(files: PackageFile[]): SkillPackage {
 		throw new HubError('SKILL.md needs YAML frontmatter containing name and description.');
 	let meta: Record<string, unknown>;
 	try {
-		meta = parse(match[1], { maxAliasCount: 0, uniqueKeys: true });
+		try {
+			meta = parse(match[1], { maxAliasCount: 0, uniqueKeys: true });
+		} catch {
+			// Some upstream skills use colon-space in single-line prose fields without
+			// YAML quoting. Interpret only these known text fields as strings; retain
+			// the original package bytes and keep all other YAML validation strict.
+			const quoted = match[1].replace(
+				/^(description|compatibility|license):[ \t]+([^\s\[\]{},&*!|>'"%@`#][^\r\n]*:[ \t]+[^\r\n]*)$/gm,
+				(_, key: string, value: string) => `${key}: ${JSON.stringify(value)}`
+			);
+			if (quoted === match[1]) throw new Error();
+			meta = parse(quoted, { maxAliasCount: 0, uniqueKeys: true });
+		}
 		if (!meta || typeof meta !== 'object' || Array.isArray(meta)) throw new Error();
 	} catch {
 		throw new HubError('SKILL.md contains invalid YAML frontmatter.');

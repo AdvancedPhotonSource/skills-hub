@@ -40,7 +40,7 @@ export function catalogOwnership(repository: string, directory: string) {
 	if (repository.toLowerCase() === 'advancedphotonsource/ptychodus') login = 'stevehenke';
 	else if (
 		repository.toLowerCase() === 'advancedphotonsource/apexa-aps-beamline-assistant' &&
-		['.agents/skills/apexa-report', '.agents/skills/motor-control'].includes(directory)
+		directory.startsWith('.agents/skills/')
 	)
 		login = 'pawantr';
 	else return null;

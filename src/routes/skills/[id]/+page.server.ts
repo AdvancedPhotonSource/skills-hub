@@ -4,7 +4,9 @@ import {
 	revisionFor,
 	readPackageFile,
 	searchSkills,
-	canManage
+	canManage,
+	collectionMembers,
+	memberCollections
 } from '$lib/server/catalog';
 import { renderMarkdown } from '$lib/server/markdown';
 import { HubError } from '$lib/server/errors';
@@ -24,6 +26,8 @@ export const load = ({ params, url, locals }: import('./$types').PageServerLoadE
 		const binary = buffer.subarray(0, 8000).includes(0) || text.includes('\ufffd');
 		return {
 			skill,
+			members: collectionMembers(revision.details),
+			collections: memberCollections(skill.id),
 			projectRepository:
 				revision.details.mcp?.repository ||
 				(revision.source || !revision.files.some((f) => f.path === 'SKILL.md')
@@ -47,7 +51,7 @@ export const load = ({ params, url, locals }: import('./$types').PageServerLoadE
 			raw: url.searchParams.get('view') === 'source',
 			canEdit: canManage(skill, locals.user),
 			related: searchSkills(new URLSearchParams({ category: skill.categories[0] || '' }))
-				.skills.filter((s) => s.id !== skill.id)
+				.skills.filter((s) => s.id !== skill.id && !skill.collectionMembers?.includes(s.id))
 				.slice(0, 3)
 		};
 	} catch (e) {

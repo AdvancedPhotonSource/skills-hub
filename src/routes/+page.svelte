@@ -90,7 +90,7 @@
 			<SlidersHorizontal size={15} />
 		</div>
 		<div class="type-filter" role="group" aria-label="Application type">
-			{#each [['', 'All'], ['skill', 'Skills'], ['mcp', 'MCPs']] as [value, label]}<a
+			{#each [['', 'All'], ['skill', 'Skills'], ['mcp', 'MCPs'], ['collection', 'Collections']] as [value, label]}<a
 					class="badge"
 					class:blue={(data.filters.type || '') === value}
 					aria-current={(data.filters.type || '') === value ? 'true' : undefined}

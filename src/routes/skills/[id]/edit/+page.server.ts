@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
-import { requireOwner } from '$lib/server/catalog';
+import { requireOwner, collectionChoices, collectionMembers } from '$lib/server/catalog';
 import { editorActions } from '$lib/server/editor';
 import { HubError } from '$lib/server/errors';
 import { db } from '$lib/server/db';
@@ -11,6 +11,14 @@ export const load = ({ locals, params }: import('./$types').PageServerLoadEvent)
 		const skill = requireOwner(params.id, locals.user);
 		return {
 			skill,
+			memberChoices: [
+				...new Map(
+					[...collectionChoices(locals.user), ...collectionMembers(skill)].map((entry) => [
+						entry.id,
+						entry
+					])
+				).values()
+			],
 			ownerChoices: db
 				.prepare(
 					'SELECT id, username, display_name AS displayName FROM users ORDER BY display_name, id'

@@ -18,7 +18,9 @@ export type Mcp = {
 	tools: string;
 };
 export type CatalogDetails = {
-	applicationType: 'skill' | 'mcp';
+	applicationType: 'skill' | 'mcp' | 'collection';
+	collectionTitle?: string;
+	collectionMembers?: string[];
 	contexts: string[];
 	techniques: string[];
 	provenance: 'argonne' | 'external' | 'adapted';
@@ -39,6 +41,7 @@ export type ImportSource = {
 };
 export type Owner = Pick<User, 'id' | 'username' | 'displayName'>;
 export type Skill = CatalogDetails & {
+	memberCount?: number;
 	id: string;
 	name: string;
 	description: string;

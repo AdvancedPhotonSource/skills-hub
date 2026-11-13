@@ -4,6 +4,7 @@
 		Download,
 		FileText,
 		Plug,
+		Layers,
 		ChevronRight,
 		Clock,
 		Pencil,
@@ -29,7 +30,7 @@
 </script>
 
 <svelte:head
-	><title>{data.revision.name} · APS Skills Hub</title><meta
+	><title>{details.collectionTitle || data.revision.name} · APS Skills Hub</title><meta
 		name="description"
 		content={data.revision.description}
 	/></svelte:head
@@ -50,14 +51,19 @@
 			</div>{/if}
 		<div class="detail-heading">
 			<div class="detail-icon tone" data-tone={categoryTone(data.skill.categories[0])}>
-				{#if details.applicationType === 'mcp'}<Plug size={28} strokeWidth={1.4} />{:else}<FileText
+				{#if details.applicationType === 'collection'}<Layers
 						size={28}
 						strokeWidth={1.4}
-					/>{/if}
+					/>{:else if details.applicationType === 'mcp'}<Plug
+						size={28}
+						strokeWidth={1.4}
+					/>{:else}<FileText size={28} strokeWidth={1.4} />{/if}
 			</div>
 			<div>
 				<div class="name-line">
-					<h1>{data.revision.name}</h1>
+					<h1>{details.collectionTitle || data.revision.name}</h1>
+					{#if details.applicationType === 'collection'}<span class="badge blue">Collection</span
+						>{/if}
 					{#if details.applicationType === 'mcp'}<span class="badge blue">MCP</span>{/if}
 					{#if details.provenance !== 'argonne'}<span class="badge"
 							>{provenanceName[details.provenance]}</span
@@ -80,6 +86,14 @@
 					size={13}
 				/><span>{data.skill.downloads} downloads</span>{/if}
 		</div>
+		{#if data.collections.length}<div class="source-line">
+				<Layers size={15} /><span
+					>Part of {#each data.collections as collection, i}{#if i},
+						{/if}<a href={`${base}/skills/${collection.id}`}
+							>{collection.collectionTitle || collection.name}</a
+						>{/each}</span
+				>
+			</div>{/if}
 		{#if data.revision.source}<div class="source-line">
 				<a href={sourceUrl(data.revision.source)} target="_blank" rel="noreferrer"
 					><GitBranch size={15} />View original source <ExternalLink size={12} /></a
@@ -99,7 +113,11 @@
 	<div class="detail-layout">
 		<section
 			class="source-section"
-			aria-label={details.applicationType === 'mcp' ? 'MCP server' : 'Skill source'}
+			aria-label={details.applicationType === 'collection'
+				? 'Collection entries'
+				: details.applicationType === 'mcp'
+					? 'MCP server'
+					: 'Skill source'}
 		>
 			{#snippet sourceView()}
 				<div class="source-intro">
@@ -154,7 +172,16 @@
 					</div>
 				</div>
 			{/snippet}
-			{#if details.applicationType === 'mcp' && details.mcp}
+			{#if details.applicationType === 'collection'}
+				<div class="source-intro">
+					<h2>{data.members.length} entries in this collection</h2>
+					<p>Explore each skill or MCP for instructions, files, and ownership.</p>
+				</div>
+				<div data-view="grid"><SkillList skills={data.members} /></div>
+				{#if !data.members.length}<p class="muted">
+						No published entries are currently available.
+					</p>{/if}
+			{:else if details.applicationType === 'mcp' && details.mcp}
 				<McpCard mcp={details.mcp} id={data.skill.id} />
 				{#if data.revision.files.length > 1 || data.revision.files[0]?.path !== 'README.md'}
 					<details
@@ -167,6 +194,22 @@
 			{:else}{@render sourceView()}{/if}
 		</section>
 		<aside class="detail-sidebar">
+			{#if details.applicationType === 'collection'}
+				<section class="collection-download">
+					<Layers size={24} />
+					<h2>Use this collection</h2>
+					<p>
+						Download the latest published files for all {data.members.length} entries in one ZIP. Each
+						entry has its own folder.
+					</p>
+					<a
+						class="button primary"
+						href={`${base}/skills/${data.skill.id}/download?revision=${data.revision.number}`}
+						><Download size={15} />Download collection</a
+					>
+				</section>
+				{#if details.sourceUrl}<RepositoryLink href={details.sourceUrl} />{/if}
+			{/if}
 			{#if details.applicationType === 'skill'}
 				<InstallCard
 					id={data.skill.id}
@@ -177,13 +220,11 @@
 				<RepositoryLink href={details.mcp.repository} />
 			{/if}
 			<section class="metadata">
-				<h3>About this {details.applicationType === 'mcp' ? 'MCP' : 'skill'}</h3>
+				<h3>About this {details.applicationType === 'mcp' ? 'MCP' : details.applicationType}</h3>
 				<dl>
 					<dt>Owner</dt>
 					<dd>
-						<a href={`${base}/?author=${encodeURIComponent(data.skill.username)}`}
-							>{data.skill.displayName}</a
-						>
+						<OwnerLinks owners={data.skill.owners} showLabel={false} />
 					</dd>
 					{#if details.relevance}<dt>APS use case</dt>
 						<dd>{details.relevance}</dd>{/if}
@@ -206,7 +247,13 @@
 						</dd>
 					{/if}
 					<dt>Application type</dt>
-					<dd>{details.applicationType === 'mcp' ? 'MCP' : 'Skill'}</dd>
+					<dd>
+						{details.applicationType === 'mcp'
+							? 'MCP'
+							: details.applicationType === 'collection'
+								? 'Collection'
+								: 'Skill'}
+					</dd>
 					{#if details.contexts.length}<dt>Facility / beamline</dt>
 						<dd class="tags">
 							{#each details.contexts as context}<a
@@ -239,7 +286,11 @@
 						</dd>{/if}{#if data.skill.role}<dt>Useful for</dt>
 						<dd>{data.skill.role}</dd>{/if}
 					<dt>{data.revision.source ? 'Upstream license declaration' : 'License'}</dt>
-					<dd>{data.revision.license || 'Not specified'}</dd>
+					<dd>
+						{details.applicationType === 'collection'
+							? 'See individual entries'
+							: data.revision.license || 'Not specified'}
+					</dd>
 					{#if data.revision.source?.licenses.length}<dt>Included license notices</dt>
 						<dd class="license-links">
 							{#each data.revision.source.licenses as license}<a href={fileUrl(license.path)}
@@ -251,7 +302,9 @@
 				</dl>
 			</section>
 			{#if data.canEdit}<a class="button manage" href={`${base}/skills/${data.skill.id}/edit`}
-					><Pencil size={14} />Manage {details.applicationType === 'mcp' ? 'MCP' : 'skill'}</a
+					><Pencil size={14} />Manage {details.applicationType === 'mcp'
+						? 'MCP'
+						: details.applicationType}</a
 				>{/if}
 		</aside>
 	</div>
@@ -267,6 +320,26 @@
 </div>
 
 <style>
+	.collection-download {
+		padding: 22px;
+		border: 1px solid var(--line);
+		border-top: 3px solid var(--blue);
+		border-radius: var(--radius);
+		background: var(--blue-light);
+		margin-bottom: 20px;
+	}
+	.collection-download > :global(svg) {
+		color: var(--blue);
+	}
+	.collection-download h2 {
+		font-size: 17px;
+		margin: 12px 0 8px;
+	}
+	.collection-download p {
+		font-size: 13px;
+		color: var(--muted);
+		margin-bottom: 18px;
+	}
 	.supporting-files {
 		margin-top: 24px;
 	}

@@ -29,6 +29,14 @@ const select = `SELECT s.id, s.owner_id AS ownerId, s.name, s.description, s.cat
   JOIN revisions r ON r.skill_id = s.id AND r.number = s.revision`;
 const toSkill = ({ details, ...row }: SkillRow): Skill => ({
 	...row,
+	memberCount: (
+		db
+			.prepare(
+				`SELECT count(*) AS n FROM skills WHERE archived=0 AND id IN
+		(SELECT value FROM json_each(?, '$.collectionMembers'))`
+			)
+			.get(details) as { n: number }
+	).n,
 	owners: [
 		{ id: row.ownerId, username: row.username, displayName: row.displayName },
 		...(db
@@ -113,6 +121,12 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 			: 's.archived = 0'
 	];
 	const values: (string | number)[] = owner ? [owner.id, owner.id] : [];
+	// Explore groups members on the unfiltered landing page; search and API keep every entry discoverable.
+	if (params.get('grouped') === '1')
+		where.push(`NOT EXISTS (
+		SELECT 1 FROM skills c, json_each(c.details, '$.collectionMembers') member
+		WHERE c.archived=0 AND json_extract(c.details, '$.applicationType')='collection' AND member.value=s.id
+	)`);
 	for (const key of ['applicationType', 'provenance'] as const) {
 		const value = params.get(key === 'applicationType' ? 'type' : key);
 		if (value) {
@@ -168,8 +182,10 @@ export function searchSkills(params: URLSearchParams, owner?: User) {
 		values.push(author, author, author);
 	}
 	if (repository) {
-		where.push("json_extract(r.source, '$.repository') = ? COLLATE NOCASE");
-		values.push(repository);
+		where.push(
+			"(json_extract(r.source, '$.repository') = ? COLLATE NOCASE OR json_extract(s.details, '$.sourceUrl') = ? COLLATE NOCASE)"
+		);
+		values.push(repository, `https://github.com/${repository}`);
 	}
 	if (origin === 'imported') where.push('r.source IS NOT NULL');
 	if (origin === 'uploaded') where.push('r.source IS NULL');
@@ -303,6 +319,36 @@ export function publish(
 		upstreamAuthor: meta.upstreamAuthor || pkg.source?.author || ''
 	});
 	if (
+		existing &&
+		existing.applicationType !== details.applicationType &&
+		(existing.applicationType === 'collection' || details.applicationType === 'collection')
+	)
+		throw new HubError('Create a separate collection instead of converting an existing entry.');
+	if (details.applicationType === 'collection') {
+		for (const memberId of details.collectionMembers || []) {
+			const member = getSkill(memberId);
+			if (member.id === existing?.id || member.applicationType === 'collection')
+				throw new HubError('Collections can contain skills and MCPs, not other collections.');
+			if (!existing?.collectionMembers?.includes(memberId) && !canManage(member, user))
+				throw new HubError('You can only add skills and MCPs that you own to a collection.', 403);
+		}
+	}
+	if (
+		!existing &&
+		pkg.source &&
+		db
+			.prepare(
+				`SELECT 1 FROM skills s JOIN revisions r
+		ON r.skill_id=s.id AND r.number=s.revision WHERE
+		json_extract(r.source, '$.repository')=? COLLATE NOCASE AND json_extract(r.source, '$.directory')=?`
+			)
+			.get(pkg.source.repository, pkg.source.directory)
+	)
+		throw new HubError(
+			'This repository skill is already in the catalog. Use the existing entry.',
+			409
+		);
+	if (
 		details.provenance !== 'argonne' &&
 		(!details.sourceUrl || !details.upstreamAuthor || !details.relevance)
 	)
@@ -406,7 +452,13 @@ export function publish(
 				[...meta.tags, ...details.contexts, ...details.techniques, details.applicationType].join(
 					' '
 				),
-				[pkg.content, details.relevance, details.mcp?.tools, details.mcp?.instructions]
+				[
+					pkg.content,
+					details.collectionTitle,
+					details.relevance,
+					details.mcp?.tools,
+					details.mcp?.instructions
+				]
 					.filter(Boolean)
 					.join('\n')
 			);
@@ -435,6 +487,31 @@ export function deleteEntry(id: string, user: User, expected: number) {
 
 export function download(skill: Skill, revision: Revision) {
 	const entries: Parameters<typeof zipSync>[0] = {};
+	if (revision.details.applicationType === 'collection') {
+		const members = collectionMembers(revision.details);
+		let size = 0;
+		for (const member of members) {
+			const current = revisionFor(member.id);
+			const folder =
+				members.filter((other) => other.name === member.name).length > 1
+					? `${member.name}--${member.id}`
+					: member.name;
+			for (const file of current.files) {
+				size += file.size;
+				if (size > 250 * 1024 * 1024)
+					throw new HubError(
+						'Collection exceeds the 250 MB download limit. Download its entries individually.'
+					);
+				entries[`${folder}/${file.path}`] = [
+					readPackageFile(current, file.path),
+					{ os: 3, attrs: ((0o100000 | (file.mode || 0o644)) << 16) >>> 0 }
+				];
+			}
+		}
+		const zip = zipSync(entries);
+		db.prepare('UPDATE skills SET downloads=downloads+1 WHERE id=?').run(skill.id);
+		return zip;
+	}
 	for (const file of revision.files) {
 		const mode = (file as typeof file & { mode?: number }).mode || 0o644;
 		entries[`${revision.name}/${file.path}`] = [
@@ -445,4 +522,37 @@ export function download(skill: Skill, revision: Revision) {
 	const zip = zipSync(entries);
 	db.prepare('UPDATE skills SET downloads=downloads+1 WHERE id=?').run(skill.id);
 	return zip;
+}
+
+export function collectionMembers(details: CatalogDetails): Skill[] {
+	return (
+		db
+			.prepare(
+				`${select} WHERE s.archived=0 AND s.id IN
+		(SELECT value FROM json_each(?)) ORDER BY s.name, s.id`
+			)
+			.all(JSON.stringify(details.collectionMembers || [])) as SkillRow[]
+	).map(toSkill);
+}
+
+export function memberCollections(id: string): Skill[] {
+	return (
+		db
+			.prepare(
+				`${select} WHERE s.archived=0 AND json_extract(s.details, '$.applicationType')='collection'
+		AND EXISTS (SELECT 1 FROM json_each(s.details, '$.collectionMembers') WHERE value=?) ORDER BY s.name`
+			)
+			.all(id) as SkillRow[]
+	).map(toSkill);
+}
+
+export function collectionChoices(user: User): Skill[] {
+	return (
+		db
+			.prepare(
+				`${select} WHERE s.archived=0 AND COALESCE(json_extract(s.details, '$.applicationType'), 'skill')<>'collection'
+		AND (s.owner_id=? OR EXISTS (SELECT 1 FROM skill_coowners WHERE skill_id=s.id AND user_id=?)) ORDER BY s.name`
+			)
+			.all(user.id, user.id) as SkillRow[]
+	).map(toSkill);
 }

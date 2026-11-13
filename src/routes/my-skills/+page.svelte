@@ -10,7 +10,7 @@
 	<div class="page-head section-heading">
 		<div>
 			<h1>My contributions</h1>
-			<p>Skills and MCPs you own.</p>
+			<p>Skills, MCPs, and collections you own.</p>
 		</div>
 		<a class="button primary" href={`${base}/upload`}><Upload size={16} />Publish</a>
 	</div>

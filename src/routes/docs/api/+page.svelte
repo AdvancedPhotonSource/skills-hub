@@ -69,8 +69,8 @@
 	const parameters = [
 		[
 			'type',
-			'skill | mcp',
-			'Application type. MCP records include connection and deployment metadata.'
+			'skill | mcp | collection',
+			'Application type. Collections include collectionTitle, collectionMembers (entry IDs), and memberCount. MCP records include connection and deployment metadata.'
 		],
 		[
 			'context',
@@ -108,7 +108,7 @@
 		[
 			'repository',
 			'owner/repo',
-			'Imported-source repository, such as AdvancedPhotonSource/ptychodus. This does not match related-project or MCP repository links.'
+			'Imported-source repository or catalog source URL, such as AdvancedPhotonSource/ptychodus.'
 		],
 		['origin', 'imported | uploaded', 'Filter repository imports or local contributions.'],
 		[
@@ -336,6 +336,11 @@
 					>revision</code
 				> to the positive integer from the detail response to keep the download pinned. Omit it for the
 				latest version.
+			</p>
+			<p>
+				For collections, <code>revision</code> selects the membership list. The ZIP contains the latest
+				published files of each currently available member in separate folders; member files are not pinned
+				by the collection revision. Retrieve individual entry revisions for reproducible downloads.
 			</p>
 			<CodeBlock label="Download a specific revision" code={downloadCode} />
 			<p class="caption">

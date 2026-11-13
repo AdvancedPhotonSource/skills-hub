@@ -20,10 +20,12 @@
 	let {
 		skill,
 		ownerChoices = [],
+		memberChoices = [],
 		form
 	}: {
 		skill?: Skill;
 		ownerChoices?: Owner[];
+		memberChoices?: Skill[];
 		form?: {
 			message?: string;
 			success?: boolean;
@@ -75,7 +77,7 @@
 		<p>
 			{skill
 				? 'Update the content and how people find it.'
-				: 'Share a skill or MCP for an APS workflow.'}
+				: 'Share a skill, MCP, or collection for an APS workflow.'}
 		</p>
 	</div>
 	<div class="editor-layout">
@@ -110,10 +112,85 @@
 						name="applicationType"
 						bind:value={applicationType}
 						disabled={!ready}
-						><option value="skill">Skill</option><option value="mcp">MCP</option></select
+						><option value="skill">Skill</option><option value="mcp">MCP</option><option
+							value="collection">Collection</option
+						></select
 					>
 				</div>
-				{#if applicationType === 'mcp'}
+				{#if applicationType === 'collection'}
+					<section class="editor-section">
+						<div class="step-title">
+							<span>1</span>
+							<h2>Bring related entries together</h2>
+						</div>
+						<p class="small-text muted">
+							Publish your skills or MCPs first, then select them here to ship together. Each entry
+							keeps its own owners, source, and updates.
+						</p>
+						<div class="field">
+							<label for="collection-title">Collection title</label><input
+								id="collection-title"
+								name="collectionTitle"
+								value={skill?.collectionTitle || ''}
+								placeholder="Ptychodus collection"
+								maxlength="120"
+								required
+							/>
+						</div>
+						<div class="field">
+							<label for="collection-name">Collection identifier</label><input
+								id="collection-name"
+								name="name"
+								value={skill?.name || ''}
+								placeholder="ptychodus-collection"
+								pattern="[a-z0-9]+(-[a-z0-9]+)*"
+								maxlength="64"
+								readonly={Boolean(skill)}
+								required
+							/>
+						</div>
+						<div class="field">
+							<label for="collection-description">Description</label><textarea
+								id="collection-description"
+								name="description"
+								maxlength="1024"
+								required>{skill?.description || ''}</textarea
+							>
+						</div>
+						<div class="field">
+							<label for="collection-repository"
+								>Linked repository <span class="muted">(optional)</span></label
+							><input
+								id="collection-repository"
+								name="sourceUrl"
+								type="url"
+								value={skill?.sourceUrl || ''}
+								placeholder="https://github.com/organization/project"
+							/>
+						</div>
+						<fieldset class="field">
+							<legend>Included skills and MCPs <span class="muted">Choose 2–100</span></legend>
+							<div class="collection-picker">
+								{#each memberChoices as member}<label
+										><input
+											type="checkbox"
+											name="collectionMember"
+											value={member.id}
+											checked={skill?.collectionMembers?.includes(member.id)}
+										/><span
+											><strong>{member.name}</strong><small
+												>{member.applicationType === 'mcp' ? 'MCP' : 'Skill'} · {member.description}</small
+											></span
+										></label
+									>{/each}
+							</div>
+							{#if memberChoices.length < 2}<p class="small-text muted">
+									You need at least two published skills or MCPs that you own to create a
+									collection.
+								</p>{/if}
+						</fieldset>
+					</section>
+				{:else if applicationType === 'mcp'}
 					<section class="editor-section"><McpFields {skill} /></section>
 				{:else}
 					<section class="editor-section">
@@ -340,15 +417,15 @@
 								maxlength="200"
 							/><small>For GitHub imports, defaults to the repository owner.</small>
 						</div>
-						<div class="field">
-							<label for="source-url">Original source URL</label><input
-								id="source-url"
-								name="sourceUrl"
-								type="url"
-								value={skill?.sourceUrl || ''}
-								required={method !== 'github'}
-							/>
-						</div>
+						{#if applicationType !== 'collection'}<div class="field">
+								<label for="source-url">Original source URL</label><input
+									id="source-url"
+									name="sourceUrl"
+									type="url"
+									value={skill?.sourceUrl || ''}
+									required={method !== 'github'}
+								/>
+							</div>{/if}
 						<div class="field">
 							<label for="relevance">APS use case</label><textarea
 								id="relevance"
@@ -372,7 +449,9 @@
 								? 'Save changes'
 								: applicationType === 'mcp'
 									? 'Publish MCP'
-									: 'Publish skill'}</button
+									: applicationType === 'collection'
+										? 'Publish collection'
+										: 'Publish skill'}</button
 					><a class="button" href={skill ? `${base}/skills/${skill.id}` : `${base}/my-skills`}
 						>Cancel</a
 					>
@@ -417,11 +496,19 @@
 		</div>
 		<aside class="publishing-note">
 			<FileText size={23} strokeWidth={1.4} />
-			<h3>{applicationType === 'mcp' ? 'A connection to tools' : 'A portable skill folder'}</h3>
+			<h3>
+				{applicationType === 'collection'
+					? 'Better together'
+					: applicationType === 'mcp'
+						? 'A connection to tools'
+						: 'A portable skill folder'}
+			</h3>
 			<p>
-				{applicationType === 'mcp'
-					? 'Describe how to connect or deploy. A public repository does not necessarily offer a public endpoint.'
-					: 'Upload SKILL.md or a ZIP with its supporting files.'}
+				{applicationType === 'collection'
+					? 'Group related skills and MCPs in one place, with a shared overview and a single download.'
+					: applicationType === 'mcp'
+						? 'Describe how to connect or deploy. A public repository does not necessarily offer a public endpoint.'
+						: 'Upload SKILL.md or a ZIP with its supporting files.'}
 			</p>
 			<p>
 				{#if skill}<OwnerLinks owners={skill.owners} />{:else}Owner {page.data.user
@@ -432,6 +519,29 @@
 </div>
 
 <style>
+	.collection-picker {
+		display: grid;
+		max-height: 360px;
+		overflow: auto;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+	}
+	.collection-picker label {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+		padding: 14px;
+		border-bottom: 1px solid var(--line);
+	}
+	.collection-picker input {
+		width: auto;
+		margin-top: 4px;
+	}
+	.collection-picker small {
+		display: block;
+		font-weight: 400;
+		margin-top: 4px;
+	}
 	.owner-choices {
 		display: grid;
 		gap: 8px;
