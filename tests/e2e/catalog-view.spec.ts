@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { signIn } from './session';
 
-for (const savedView of ['list', 'grid']) {
-	test(`catalog view waits for hydration and restores ${savedView} preference`, async ({
+for (const savedView of ['default', 'list', 'grid']) {
+	test(`catalog view waits for hydration and respects ${savedView} preference`, async ({
 		page
 	}) => {
 		await signIn(page.context(), `view-${savedView}`);
-		await page.addInitScript((view) => localStorage.setItem('aps:view', view), savedView);
+		if (savedView !== 'default') {
+			await page.addInitScript((view) => localStorage.setItem('aps:view', view), savedView);
+		}
 		let resumeScripts!: () => void;
 		const scriptsReady = new Promise<void>((resolve) => (resumeScripts = resolve));
 		await page.route('**/*', async (route) => {
@@ -25,7 +27,7 @@ for (const savedView of ['list', 'grid']) {
 		}
 		await expect(list).toBeEnabled();
 		await expect(grid).toBeEnabled();
-		await expect(grid).toHaveAttribute('aria-pressed', String(savedView === 'grid'));
+		await expect(grid).toHaveAttribute('aria-pressed', String(savedView !== 'list'));
 		await grid.click();
 		await expect(grid).toHaveAttribute('aria-pressed', 'true');
 		await expect(page.locator('html')).toHaveAttribute('data-view', 'grid');
@@ -35,5 +37,11 @@ for (const savedView of ['list', 'grid']) {
 		await expect(grid).toHaveAttribute('aria-pressed', 'false');
 		await expect(page.locator('html')).toHaveAttribute('data-view', 'list');
 		expect(await page.evaluate(() => localStorage.getItem('aps:view'))).toBe('list');
+		if (savedView === 'default') {
+			await page.reload();
+			await expect(list).toBeEnabled();
+			await expect(list).toHaveAttribute('aria-pressed', 'true');
+			await expect(page.locator('html')).toHaveAttribute('data-view', 'list');
+		}
 	});
 }

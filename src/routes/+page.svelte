@@ -18,7 +18,7 @@
 	import { contextOptions, canonicalContext } from '$lib/contexts';
 	let { data } = $props();
 	let showFilters = $state(false);
-	let grid = $state(false);
+	let grid = $state(true);
 	let viewReady = $state(false);
 	onMount(() => {
 		grid = document.documentElement.dataset.view === 'grid';

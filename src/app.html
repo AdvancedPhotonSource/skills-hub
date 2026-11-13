@@ -1,19 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-view="grid">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.svg?v=argonne" type="image/svg+xml" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.ico?v=argonne-2" sizes="16x16 32x32 48x48" />
+		<link
+			rel="icon"
+			href="%sveltekit.assets%/favicon.svg?v=argonne-2"
+			type="image/svg+xml"
+			sizes="any"
+		/>
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#175ac6" />
 		<script>
 			try {
-				for (const [key, value] of [
-					['theme', 'dark'],
-					['view', 'grid']
-				]) {
-					if (localStorage.getItem(`aps:${key}`) === value)
-						document.documentElement.dataset[key] = value;
-				}
+				if (localStorage.getItem('aps:theme') === 'dark')
+					document.documentElement.dataset.theme = 'dark';
+				if (localStorage.getItem('aps:view') === 'list')
+					document.documentElement.dataset.view = 'list';
 			} catch {}
 		</script>
 		%sveltekit.head%
