@@ -19,8 +19,10 @@
 	let { data } = $props();
 	let showFilters = $state(false);
 	let grid = $state(false);
+	let viewReady = $state(false);
 	onMount(() => {
 		grid = document.documentElement.dataset.view === 'grid';
+		viewReady = true;
 	});
 	const urlWith = (key: string, value: string) => {
 		const params = new URLSearchParams(data.filters);
@@ -233,6 +235,7 @@
 						aria-label="List view"
 						title="List view"
 						aria-pressed={!grid}
+						disabled={!viewReady}
 						onclick={() => {
 							grid = false;
 							setPreference('view', 'list');
@@ -243,6 +246,7 @@
 						aria-label="Grid view"
 						title="Grid view"
 						aria-pressed={grid}
+						disabled={!viewReady}
 						onclick={() => {
 							grid = true;
 							setPreference('view', 'grid');
