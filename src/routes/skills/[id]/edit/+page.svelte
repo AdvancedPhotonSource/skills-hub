@@ -1,5 +1,5 @@
 <script lang="ts">
-	import SkillEditor from '$lib/components/SkillEditor.svelte';
+	import SkillEditor from '#lib/components/SkillEditor.svelte';
 	let { data, form } = $props();
 </script>
 

@@ -1,12 +1,17 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Copy, Check, Download, Sparkles, Terminal, MessageSquare } from '@lucide/svelte';
 	import SaveButton from './SaveButton.svelte';
 	import RepositoryLink from './RepositoryLink.svelte';
-	import { sourceUrl } from '$lib/source';
-	import { installCommand, installPrompt, packageRunners, type PackageRunner } from '$lib/install';
-	import type { Revision } from '$lib/types';
+	import { sourceUrl } from '#lib/source.ts';
+	import {
+		installCommand,
+		installPrompt,
+		packageRunners,
+		type PackageRunner
+	} from '#lib/install.ts';
+	import type { Revision } from '#lib/types.ts';
 	let {
 		id,
 		revision,
@@ -16,7 +21,7 @@
 	let runner = $state<PackageRunner>('npx');
 	let copiedText = $state('');
 	let copyError = $state('');
-	const hubUrl = $derived(new URL(`${base}/`, page.url).href.replace(/\/$/, ''));
+	const hubUrl = $derived(new URL(resolve('/'), page.url.href).href.replace(/\/$/, ''));
 	const downloadUrl = $derived(`${hubUrl}/skills/${id}/download?revision=${revision.number}`);
 	const text = $derived(
 		method === 'prompt'
@@ -43,10 +48,12 @@
 			<p>Ready for your next task.</p>
 		</div>
 	</div>
+
 	<div class="segmented" role="group" aria-label="Installation method">
 		<button aria-pressed={method === 'prompt'} onclick={() => (method = 'prompt')}
 			><MessageSquare size={14} />Prompt</button
 		>
+
 		<button aria-pressed={method === 'command'} onclick={() => (method = 'command')}
 			><Terminal size={14} />Command</button
 		>
@@ -62,8 +69,10 @@
 				{#each packageRunners as option}<button
 						aria-pressed={runner === option}
 						onclick={() => (runner = option)}>{option}</button
-					>{/each}
-			</div>{/if}
+					>
+				{/each}
+			</div>
+		{/if}
 		<label class="sr-only" for="install-text"
 			>{method === 'prompt' ? 'Installation prompt' : 'Installation command'}</label
 		>
@@ -90,7 +99,8 @@
 		</p>
 	</div>
 	<div class="package-actions">
-		<a class="button" href={downloadUrl}><Download size={15} />Download ZIP</a><SaveButton {id} />
+		<a class="button" href={downloadUrl}><Download size={15} />Download ZIP</a>
+		<SaveButton {id} />
 	</div>
 	{#if githubUrl}<RepositoryLink href={githubUrl} label={revision.source?.repository} embedded />
 		{#if !revision.source}<p class="project-note">

@@ -1,4 +1,4 @@
-import { searchSkills } from '$lib/server/catalog';
+import { searchSkills } from '#lib/server/catalog.ts';
 
 export const load = () => {
 	const skill = searchSkills(new URLSearchParams()).skills[0];

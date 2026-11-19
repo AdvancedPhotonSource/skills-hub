@@ -1,13 +1,14 @@
-import { base } from '$app/paths';
+import { resolve } from '$app/paths';
 import { redirect } from '@sveltejs/kit';
-import { createSession, revokeSession, sessionCookie, sessionLifetime } from '$lib/server/auth';
-import { entraCookie, finishEntraSignIn } from '$lib/server/entra';
+import { createSession, revokeSession, sessionCookie, sessionLifetime } from '#lib/server/auth.ts';
+import { entraCookie, finishEntraSignIn } from '#lib/server/entra.ts';
+import { appRoot, authRoot } from '#lib/server/paths.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url, locals }) => {
 	const token = cookies.get(entraCookie);
-	cookies.delete(entraCookie, { path: `${base}/auth` });
-	let destination = `${base}/my-skills`;
+	cookies.delete(entraCookie, { path: authRoot });
+	let destination: string = resolve('/my-skills');
 	try {
 		const user = await finishEntraSignIn(
 			url,
@@ -19,10 +20,12 @@ export const GET: RequestHandler = async ({ cookies, url, locals }) => {
 					}
 				: undefined
 		);
-		if (locals.user?.id === user.id) destination = `${base}/account`;
+
+		if (locals.user?.id === user.id) destination = resolve('/account');
+
 		revokeSession(cookies.get(sessionCookie));
 		cookies.set(sessionCookie, createSession(user.id, 'entra'), {
-			path: base || '/',
+			path: appRoot,
 			httpOnly: true,
 			sameSite: 'lax',
 			secure: url.protocol === 'https:',
@@ -30,7 +33,7 @@ export const GET: RequestHandler = async ({ cookies, url, locals }) => {
 		});
 	} catch {
 		// Never expose authorization codes, tokens, secrets or provider error details.
-		destination = `${base}/${locals.user ? 'account' : 'sign-in'}?sso=failed`;
+		destination = `${resolve(locals.user ? '/account' : '/sign-in')}?sso=failed`;
 	}
 	redirect(303, destination);
 };

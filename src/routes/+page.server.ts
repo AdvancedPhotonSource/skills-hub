@@ -1,4 +1,4 @@
-import { searchSkills, taxonomyCounts } from '$lib/server/catalog';
+import { searchSkills, taxonomyCounts } from '#lib/server/catalog.ts';
 
 export const load = ({ url }: import('./$types').PageServerLoadEvent) => {
 	const params = new URLSearchParams(url.searchParams);

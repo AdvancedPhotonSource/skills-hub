@@ -44,6 +44,12 @@ function settings() {
 	};
 }
 
+/**
+ * The only origin sign-in may redirect to. Discovery is pinned to this host, so
+ * allowlisting it keeps a poisoned discovery document from becoming an open redirect.
+ */
+export const entraAuthorizationOrigin = 'https://login.microsoftonline.com';
+
 let cached: { key: string; config: Promise<oidc.Configuration> } | undefined;
 async function configuration() {
 	const values = settings();
@@ -51,7 +57,7 @@ async function configuration() {
 	if (!cached || cached.key !== key) {
 		const config = oidc
 			.discovery(
-				new URL(`https://login.microsoftonline.com/${values.tenant}/v2.0`),
+				new URL(`${entraAuthorizationOrigin}/${values.tenant}/v2.0`),
 				values.clientId,
 				values.secret
 			)

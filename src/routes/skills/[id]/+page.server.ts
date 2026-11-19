@@ -7,10 +7,10 @@ import {
 	canManage,
 	collectionMembers,
 	memberCollections
-} from '$lib/server/catalog';
-import { renderMarkdown } from '$lib/server/markdown';
-import { HubError } from '$lib/server/errors';
-import { validatePackage } from '$lib/server/packages';
+} from '#lib/server/catalog.ts';
+import { renderMarkdown } from '#lib/server/markdown.ts';
+import { HubError } from '#lib/server/errors.ts';
+import { validatePackage } from '#lib/server/packages.ts';
 
 export const load = ({ params, url, locals }: import('./$types').PageServerLoadEvent) => {
 	try {

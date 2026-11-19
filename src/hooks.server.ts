@@ -1,7 +1,9 @@
-import { base } from '$app/paths';
-import { dev } from '$app/environment';
-import { error, type Handle } from '@sveltejs/kit';
-import { sessionCookie, sessionUser } from '$lib/server/auth';
+import { error } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { resolve as resolvePath } from '$app/paths';
+import { dev } from '$app/env';
+import { sessionCookie, sessionUser } from '#lib/server/auth.ts';
+import { appRoot } from '#lib/server/paths.ts';
 
 // Only authentication routes are public. All other requests fail closed, including
 // JSON/data requests, files and downloads. This never depends on client-side state.
@@ -14,7 +16,8 @@ const publicRoutes = new Set([
 ]);
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// SvelteKit 2 workaround for GHSA-pfhg-q3qv-9q6r (protocol-relative form actions).
+	// Defence in depth for GHSA-pfhg-q3qv-9q6r (protocol-relative form actions),
+	// fixed upstream in SvelteKit 3 but kept so the rejection stays explicit.
 	if (event.url.pathname.startsWith('//')) error(400, 'Invalid request path.');
 	// Applies to form actions and JSON endpoints, including unauthenticated writes.
 	if (!['GET', 'HEAD', 'OPTIONS'].includes(event.request.method)) {
@@ -24,8 +27,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (length > 12 * 1024 * 1024) error(413, 'Upload must be smaller than 12 MB.');
 	}
 	event.locals.user = sessionUser(event.cookies.get(sessionCookie), 'entra');
+
 	if (!event.locals.user && event.cookies.get(sessionCookie))
-		event.cookies.delete(sessionCookie, { path: base || '/' });
+		event.cookies.delete(sessionCookie, { path: appRoot });
+
 	let response: Response;
 	if (!event.locals.user && !publicRoutes.has(event.route.id || '')) {
 		const navigation =
@@ -33,7 +38,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			['GET', 'HEAD'].includes(event.request.method) &&
 			event.request.headers.get('accept')?.includes('text/html');
 		response = navigation
-			? new Response(null, { status: 303, headers: { Location: `${base}/sign-in` } })
+			? new Response(null, { status: 303, headers: { Location: resolvePath('/sign-in') } })
 			: Response.json({ error: 'Argonne SSO sign-in is required.' }, { status: 401 });
 	} else {
 		response = await resolve(event);

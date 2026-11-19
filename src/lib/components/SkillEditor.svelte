@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Upload, FileText, ChevronRight, Check, Eye, GitBranch } from '@lucide/svelte';
-	import { categories, roles, techniques } from '$lib/taxonomy';
+	import { categories, roles, techniques } from '#lib/taxonomy.ts';
 	import { onMount, untrack } from 'svelte';
 	import McpFields from './McpFields.svelte';
 	import ContextPicker from './ContextPicker.svelte';
 	import OwnerLinks from './OwnerLinks.svelte';
 	import Markdown from './Markdown.svelte';
-	import type { Skill, ImportSource, Owner } from '$lib/types';
-	import { sourceUrl } from '$lib/source';
+	import type { Skill, ImportSource, Owner } from '#lib/types.ts';
+	import { sourceUrl } from '#lib/source.ts';
 	type Repository = {
 		url: string;
 		ref: string;
@@ -70,9 +70,15 @@
 <div class="shell editor-shell">
 	<div class="page-head">
 		<div class="breadcrumbs">
-			<a href={`${base}/`}>Explore</a><ChevronRight size={13} />{#if skill}<a
-					href={`${base}/skills/${skill.id}`}>{skill.name}</a
-				><ChevronRight size={13} />{/if}<span>{skill ? 'Manage entry' : 'Publish'}</span>
+			<a href={resolve('/')}>Explore</a>
+			<ChevronRight size={13} />
+
+			{#if skill}
+				<a href={resolve(`skills/${skill.id}`)}>{skill.name}</a>
+				<ChevronRight size={13} />
+			{/if}
+
+			<span>{skill ? 'Manage entry' : 'Publish'}</span>
 		</div>
 		<h1>{skill ? 'Keep your contribution up to date.' : 'Share a useful starting point.'}</h1>
 		<p>
@@ -112,10 +118,11 @@
 						id="application-type"
 						name="applicationType"
 						bind:value={applicationType}
-						><option value="skill">Skill</option><option value="mcp">MCP</option><option
-							value="collection">Collection</option
-						></select
 					>
+						<option value="skill">Skill</option>
+						<option value="mcp">MCP</option>
+						<option value="collection">Collection</option>
+					</select>
 				</div>
 				{#if applicationType === 'collection'}
 					<section class="editor-section">
@@ -198,19 +205,29 @@
 							<span>1</span>
 							<h2>{skill ? 'Skill files' : 'Choose your files'}</h2>
 						</div>
-						{#if !skill}<fieldset class="import-method">
-								<legend class="sr-only">Skill source</legend><label
-									><input type="radio" name="method" value="upload" bind:group={method} /> Upload files</label
-								><label
-									><input
+						{#if !skill}
+							<fieldset class="import-method">
+								<legend class="sr-only">Skill source</legend>
+								<label>
+									<input type="radio" name="method" value="upload" bind:group={method} />
+
+									Upload files
+								</label>
+
+								<label>
+									<input
 										type="radio"
 										name="method"
 										value="github"
 										bind:group={method}
 										onchange={() => (provenance = 'external')}
-									/> Import from GitHub</label
-								>
-							</fieldset>{/if}
+									/>
+
+									Import from GitHub
+								</label>
+							</fieldset>
+						{/if}
+
 						{#if method === 'github'}
 							<div class="field">
 								<label for="repository">GitHub repository or skill URL</label><input
@@ -240,25 +257,36 @@
 									here.</small
 								>
 							</div>
-							<button class="button" formaction="?/discover" formnovalidate disabled={pending}
-								><GitBranch size={16} />{pending ? 'Reading repository…' : 'Find skills'}</button
-							>
-							{#if repository}<div class="field directory-picker">
-									<label for="directory">Skill directory</label><select
-										id="directory"
-										name="directory"
-										bind:value={directory}
-										>{#each repository.directories as path}<option value={path || '.'}
-												>{path || '(repository root)'}</option
-											>{/each}</select
-									><input type="hidden" name="commit" value={repository.commit} /><small
+
+							<button class="button" formaction="?/discover" formnovalidate disabled={pending}>
+								<GitBranch size={16} />
+								{pending ? 'Reading repository…' : 'Find skills'}
+							</button>
+
+							{#if repository}
+								<div class="field directory-picker">
+									<label for="directory">Skill directory</label>
+
+									<select id="directory" name="directory" bind:value={directory}>
+										{#each repository.directories as path}
+											<option value={path || '.'}>{path || '(repository root)'}</option>
+										{/each}
+									</select>
+
+									<input type="hidden" name="commit" value={repository.commit} />
+
+									<small
 										>Pinned to commit {repository.commit.slice(0, 12)}. Upstream files and license
 										notices are preserved.</small
 									>
-								</div>{/if}
-						{:else if !skill?.source}<div class="upload-zone">
-								<Upload size={26} strokeWidth={1.5} /><label for="file"
-									>{chosenFile ||
+								</div>
+							{/if}
+						{:else if !skill?.source}
+							<div class="upload-zone">
+								<Upload size={26} strokeWidth={1.5} />
+
+								<label for="file">
+									{chosenFile ||
 										(skill
 											? 'Upload a replacement package'
 											: 'Choose a SKILL.md or ZIP file')}</label
@@ -287,13 +315,16 @@
 								formaction="?/preview"
 								formnovalidate
 								disabled={pending || (method === 'github' ? !repository : !chosenFile)}
-								><Eye size={15} />{pending ? 'Working…' : 'Preview package'}</button
-							>{:else}<a class="button small" href={`${base}/skills/${skill.id}`}
-								>Browse current files</a
-							>{/if}
-						{#if form?.preview && Boolean(form.preview.source) === (method === 'github')}<div
-								class="package-preview"
 							>
+								<Eye size={15} />
+								{pending ? 'Working…' : 'Preview package'}
+							</button>
+						{:else}
+							<a class="button small" href={resolve(`skills/${skill.id}`)}>Browse current files</a>
+						{/if}
+
+						{#if form?.preview && Boolean(form.preview.source) === (method === 'github')}
+							<div class="package-preview">
 								<div class="preview-heading">
 									<Check size={16} /><strong>{form.preview.name}</strong><span
 										>{form.preview.files.length} files</span
@@ -402,10 +433,11 @@
 							id="provenance"
 							name="provenance"
 							bind:value={provenance}
-							><option value="argonne">Argonne-authored</option><option value="external"
-								>External</option
-							><option value="adapted">Adapted from external work</option></select
 						>
+							<option value="argonne">Argonne-authored</option>
+							<option value="external">External</option>
+							<option value="adapted">Adapted from external work</option>
+						</select>
 					</div>
 					{#if provenance !== 'argonne'}
 						<div class="field">
@@ -443,7 +475,10 @@
 						class="button primary"
 						disabled={pending ||
 							(applicationType === 'skill' && method === 'github' && !repository)}
-						><Upload size={16} />{pending
+					>
+						<Upload size={16} />
+
+						{pending
 							? 'Working…'
 							: skill
 								? 'Save changes'
@@ -451,8 +486,9 @@
 									? 'Publish MCP'
 									: applicationType === 'collection'
 										? 'Publish collection'
-										: 'Publish skill'}</button
-					><a class="button" href={skill ? `${base}/skills/${skill.id}` : `${base}/my-skills`}
+										: 'Publish skill'}
+					</button>
+					<a class="button" href={skill ? resolve(`skills/${skill.id}`) : resolve(`my-skills`)}
 						>Cancel</a
 					>
 				</div>

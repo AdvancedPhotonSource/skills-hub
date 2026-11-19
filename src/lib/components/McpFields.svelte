@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { mcpTemplates } from '$lib/mcp-templates';
-	import type { Mcp, Skill } from '$lib/types';
+	import { mcpTemplates } from '#lib/mcp-templates.ts';
+	import type { Mcp, Skill } from '#lib/types.ts';
 	let { skill }: { skill?: Skill } = $props();
 	let values = $state<Mcp & { name: string; description: string; license: string }>(
 		untrack(() => {

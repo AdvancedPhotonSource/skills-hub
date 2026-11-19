@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import {
@@ -12,13 +12,13 @@
 		Package,
 		Search
 	} from '@lucide/svelte';
-	import CodeBlock from '$lib/components/CodeBlock.svelte';
+	import CodeBlock from '#lib/components/CodeBlock.svelte';
 	let { data } = $props();
 	let ready = $state(false);
 	onMount(() => {
 		ready = true;
 	});
-	const root = $derived(new URL(`${base}/`, page.url).href.replace(/\/$/, ''));
+	const root = $derived(new URL(resolve('/'), page.url.href).href.replace(/\/$/, ''));
 	const languages = ['cURL', 'JavaScript', 'Python'] as const;
 	let language = $state<(typeof languages)[number]>('cURL');
 	let endpoint = $state<'search' | 'detail' | 'categories'>('search');
@@ -92,25 +92,33 @@
 			'string',
 			'Optional search text, trimmed to 200 characters. Unquoted words match prefixes; all terms must match. Double quotes group a phrase.'
 		],
+
 		['exact', '1', 'With q, match the complete skill name instead of full-text search.'],
+
 		[
 			'category',
 			'string',
 			'Category ID, such as scattering or science. A parent includes its child categories.'
 		],
+
 		['tag', 'string', 'One exact technology tag, such as python or hdf5.'],
+
 		[
 			'role',
 			'string',
 			'Exact role label: Beamline scientist, Researcher, Software engineer, Controls engineer, or System administrator.'
 		],
+
 		['author', 'string', 'Owner username (such as haskels), or upstream publisher.'],
+
 		[
 			'repository',
 			'owner/repo',
 			'Imported-source repository or catalog source URL, such as AdvancedPhotonSource/ptychodus.'
 		],
+
 		['origin', 'imported | uploaded', 'Filter repository imports or local contributions.'],
+
 		[
 			'days',
 			'7 | 30 | 90 | 365',
@@ -204,11 +212,11 @@
 			<h2>Endpoints at a glance</h2>
 			<div class="endpoint-list">
 				{#each [['#search', '/api/v1/skills', 'Search and filter the catalog'], ['#detail', '/api/v1/skills/:id', 'Inspect a skill and its latest revision'], ['#categories', '/api/v1/categories', 'Browse the category tree and counts'], ['#downloads', '/skills/:id/download', 'Download an immutable package']] as [href, path, description]}
-					<a {href}
-						><span class="method">GET</span><span
-							><code>{path}</code><small>{description}</small></span
-						><ArrowRight size={16} /></a
-					>
+					<a {href}>
+						<span class="method">GET</span>
+						<span><code>{path}</code><small>{description}</small></span>
+						<ArrowRight size={16} />
+					</a>
 				{/each}
 			</div>
 		</section>
@@ -242,8 +250,11 @@
 				An empty result is still HTTP 200. Each item in <code>skills</code> is a skill or MCP
 				record;
 				<code>total</code>
-				counts all matches and <code>pages</code> is the total number of pages. Continue until
-				<code>page &gt;= pages</code>.
+				counts all matches and
+				<code>pages</code>
+				is the total number of pages. Continue until
+				<code>page >= pages</code>
+				.
 			</p>
 		</section>
 		<section id="detail">
@@ -321,7 +332,8 @@
 				null parent; their counts include child categories. A skill can belong to several
 				categories, so counts should not be summed to calculate catalog size.
 			</p>
-			<a class="text-link" href={`${base}/categories`}
+
+			<a class="text-link" href={resolve(`categories`)}
 				>Browse category names <ArrowUpRight size={14} /></a
 			>
 		</section>
@@ -350,7 +362,7 @@
 				skill’s download count.
 			</p>
 			<h3>Retrieve one file</h3>
-			<code class="route">/skills/:id/file?revision=N&amp;path=SKILL.md</code>
+			<code class="route">/skills/:id/file?revision=N&path=SKILL.md</code>
 			<p>
 				Returns the original file as a binary attachment. URL-encode companion paths such as <code
 					>references/sources.md</code
@@ -399,8 +411,10 @@
 						<span class="method">GET</span><code>{requestPath}</code><button
 							class="button primary small"
 							disabled={!ready || loading || (endpoint === 'detail' && !selectedId)}
-							><Play size={14} />{loading ? 'Loading…' : 'Run request'}</button
 						>
+							<Play size={14} />
+							{loading ? 'Loading…' : 'Run request'}
+						</button>
 					</div>
 				</form>
 				<div class="language-picker" role="group" aria-label="Example language">
@@ -408,7 +422,8 @@
 							aria-pressed={language === option}
 							disabled={!ready}
 							onclick={() => (language = option)}>{option}</button
-						>{/each}
+						>
+					{/each}
 				</div>
 				<CodeBlock label={`${language} example`} code={exampleCode} />
 				<div class="response-area" aria-busy={loading}>

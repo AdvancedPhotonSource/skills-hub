@@ -1,19 +1,21 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { Bookmark } from '@lucide/svelte';
-	import { savedIds, toggleSaved } from '$lib/preferences';
-	import SkillList from '$lib/components/SkillList.svelte';
-	import type { Skill } from '$lib/types';
+	import { savedIds, toggleSaved } from '#lib/preferences.ts';
+	import SkillList from '#lib/components/SkillList.svelte';
+	import type { Skill } from '#lib/types.ts';
 	let skills = $state<Skill[]>([]);
 	let unavailable = $state(0);
 	let loading = $state(true);
 	let failed = $state(false);
 	onMount(async () => {
 		const ids = savedIds();
+
 		const results = await Promise.allSettled(
 			ids.map(async (id) => {
-				const response = await fetch(`${base}/api/v1/skills/${encodeURIComponent(id)}`);
+				const response = await fetch(resolve(`api/v1/skills/${encodeURIComponent(id)}`));
+
 				if (response.status === 404) {
 					unavailable += 1;
 					return null;
@@ -22,6 +24,7 @@
 				return (await response.json()).skill as Skill;
 			})
 		);
+
 		skills = results.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []));
 		failed = results.some((r) => r.status === 'rejected');
 		loading = false;
@@ -59,8 +62,9 @@
 			<Bookmark size={30} />
 			<h2>Your next useful find belongs here</h2>
 			<p>Open a skill and choose Save to keep it in this browser.</p>
-			<a class="button" href={`${base}/`}>Explore skills</a>
-		</div>{/if}
+			<a class="button" href={resolve('/')}>Explore skills</a>
+		</div>
+	{/if}
 </div>
 
 <style>

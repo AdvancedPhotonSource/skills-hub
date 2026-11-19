@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Mcp } from '$lib/types';
+	import type { Mcp } from '#lib/types.ts';
 	import CodeBlock from './CodeBlock.svelte';
 	import SaveButton from './SaveButton.svelte';
 	let { mcp, id }: { mcp: Mcp; id: string } = $props();
