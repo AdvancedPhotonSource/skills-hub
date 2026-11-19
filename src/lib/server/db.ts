@@ -162,3 +162,37 @@ if ((db.pragma('user_version', { simple: true }) as number) < 10) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 11) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE download_grants (
+				token_hash TEXT PRIMARY KEY,
+				skill_id TEXT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+				revision INTEGER NOT NULL,
+				user_id TEXT NOT NULL REFERENCES users(id),
+				expires_at INTEGER NOT NULL,
+				uses INTEGER NOT NULL DEFAULT 0
+			);
+			CREATE INDEX download_grants_expiry ON download_grants(expires_at);
+			PRAGMA user_version = 11;
+		`);
+	})();
+}
+
+if ((db.pragma('user_version', { simple: true }) as number) < 12) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE mcp_tokens (
+				token_hash TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL REFERENCES users(id),
+				scopes TEXT NOT NULL,
+				label TEXT NOT NULL DEFAULT '',
+				expires_at INTEGER NOT NULL,
+				created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+			);
+			CREATE INDEX mcp_tokens_user ON mcp_tokens(user_id);
+			PRAGMA user_version = 12;
+		`);
+	})();
+}

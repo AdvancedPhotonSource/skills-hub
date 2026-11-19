@@ -106,11 +106,18 @@ test('SSO users publish skills without approval, discover, download, protect own
 	const guide = await page.request.get('/skill-install/prompt.md');
 	expect(guide.headers()['content-type']).toContain('text/markdown');
 	expect(await guide.text()).toContain('complete named skill directory');
+	// The prompt carries its own steps rather than pointing at that guide, which a
+	// command-line agent could not fetch without a session.
+	await expect(page.getByLabel('Installation prompt')).not.toHaveValue(/skill-install\/prompt\.md/);
 	await install.getByRole('button', { name: 'Command', exact: true }).click();
 	for (const runner of ['npx', 'bunx', 'pnpm']) {
 		await install.getByRole('button', { name: runner, exact: true }).click();
+		// The link carries a download grant, so the command works without the SSO cookie.
 		await expect(page.getByLabel('Installation command')).toHaveValue(
-			`${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1.7.4 add '${origin}${skillPath}/download?revision=1' --skill 'browser-test-skill'`
+			new RegExp(
+				`^${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1\\.7\\.4 add '${origin}${skillPath}` +
+					`/download\\?revision=1&grant=[A-Za-z0-9_-]+' --skill 'browser-test-skill'$`
+			)
 		);
 	}
 	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);

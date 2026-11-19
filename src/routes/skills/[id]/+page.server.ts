@@ -11,6 +11,7 @@ import {
 import { renderMarkdown } from '#lib/server/markdown.ts';
 import { HubError } from '#lib/server/errors.ts';
 import { validatePackage } from '#lib/server/packages.ts';
+import { mintDownloadGrant, grantLifetime } from '#lib/server/grants.ts';
 
 export const load = ({ params, url, locals }: import('./$types').PageServerLoadEvent) => {
 	try {
@@ -26,6 +27,10 @@ export const load = ({ params, url, locals }: import('./$types').PageServerLoadE
 		const binary = buffer.subarray(0, 8000).includes(0) || text.includes('\ufffd');
 		return {
 			skill,
+			// Minted per view so the copied command carries its own authorization and
+			// works in a package runner that cannot hold an SSO cookie.
+			grant: locals.user ? mintDownloadGrant(skill.id, revision.number, locals.user.id) : '',
+			grantMinutes: Math.round(grantLifetime / 60000),
 			members: collectionMembers(revision.details),
 			collections: memberCollections(skill.id),
 			projectRepository:

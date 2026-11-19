@@ -11,9 +11,13 @@ describe('installation and repository links', () => {
 				`${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1.7.4 add '${url}' --skill 'example-skill'`
 			);
 		}
-		expect(
-			installPrompt('https://hub.anl.gov/skills-hub/skill-install/prompt.md', url, 'example-skill')
-		).toContain(url);
+		// The prompt is self-contained: it carries the install steps rather than
+		// pointing the agent at a hub document it cannot fetch without a session.
+		const prompt = installPrompt(url, 'example-skill', 30);
+		expect(prompt).toContain(url);
+		expect(prompt).toContain('example-skill');
+		expect(prompt).toContain('30 minutes');
+		expect(prompt).not.toContain('skill-install/prompt.md');
 		expect(installCommand("https://host/it's-a-package?revision=1", 'example', 'npx')).toContain(
 			"'https://host/it'\\''s-a-package?revision=1'"
 		);
