@@ -51,5 +51,55 @@ class BackupTest(unittest.TestCase):
                 live.close()
 
 
+class ReleaseCommitTest(unittest.TestCase):
+    def test_reads_revision_file_from_an_extracted_release(self):
+        with tempfile.TemporaryDirectory() as temp:
+            release = Path(temp)
+            (release / "REVISION").write_text("1673e0f\n")
+            self.assertEqual(backup.release_commit(release), "1673e0f")
+
+    def test_returns_none_without_a_revision_file_or_git_checkout(self):
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertIsNone(backup.release_commit(Path(temp)))
+
+    def test_backup_succeeds_for_a_release_with_no_commit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            data = root / "data"
+            data.mkdir(parents=True)
+            live = sqlite3.connect(str(data / "hub.sqlite"))
+            try:
+                live.execute("CREATE TABLE revisions (id TEXT, files TEXT)")
+                live.commit()
+            finally:
+                live.close()
+            release = root / "release"
+            release.mkdir()
+            archive_path = backup.create_backup(data, root / "backups", keep=1, release=release)
+            with tarfile.open(archive_path) as archive:
+                metadata = json.loads(archive.extractfile("backup.json").read())
+            self.assertNotIn("commit", metadata)
+            self.assertEqual(metadata["revisions"], 0)
+
+    def test_backup_records_the_release_revision(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            data = root / "data"
+            data.mkdir(parents=True)
+            live = sqlite3.connect(str(data / "hub.sqlite"))
+            try:
+                live.execute("CREATE TABLE revisions (id TEXT, files TEXT)")
+                live.commit()
+            finally:
+                live.close()
+            release = root / "release"
+            release.mkdir()
+            (release / "REVISION").write_text("abc1234\n")
+            archive_path = backup.create_backup(data, root / "backups", keep=1, release=release)
+            with tarfile.open(archive_path) as archive:
+                metadata = json.loads(archive.extractfile("backup.json").read())
+            self.assertEqual(metadata["commit"], "abc1234")
+
+
 if __name__ == "__main__":
     unittest.main()
