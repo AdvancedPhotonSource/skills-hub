@@ -162,3 +162,68 @@ if ((db.pragma('user_version', { simple: true }) as number) < 10) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 11) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE download_grants (
+				token_hash TEXT PRIMARY KEY,
+				skill_id TEXT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+				revision INTEGER NOT NULL,
+				user_id TEXT NOT NULL REFERENCES users(id),
+				expires_at INTEGER NOT NULL,
+				uses INTEGER NOT NULL DEFAULT 0
+			);
+			CREATE INDEX download_grants_expiry ON download_grants(expires_at);
+			PRAGMA user_version = 11;
+		`);
+	})();
+}
+
+if ((db.pragma('user_version', { simple: true }) as number) < 12) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE mcp_tokens (
+				token_hash TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL REFERENCES users(id),
+				scopes TEXT NOT NULL,
+				label TEXT NOT NULL DEFAULT '',
+				expires_at INTEGER NOT NULL,
+				created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+			);
+			CREATE INDEX mcp_tokens_user ON mcp_tokens(user_id);
+			PRAGMA user_version = 12;
+		`);
+	})();
+}
+
+if ((db.pragma('user_version', { simple: true }) as number) < 13) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE oauth_clients (
+				client_id TEXT PRIMARY KEY, name TEXT NOT NULL, redirect_uris TEXT NOT NULL,
+				created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+			);
+			CREATE TABLE oauth_pending (
+				id TEXT PRIMARY KEY, client_id TEXT NOT NULL REFERENCES oauth_clients(client_id),
+				redirect_uri TEXT NOT NULL, scopes TEXT NOT NULL, resource TEXT NOT NULL,
+				challenge TEXT NOT NULL, state TEXT, expires_at INTEGER NOT NULL
+			);
+			CREATE TABLE oauth_codes (
+				code_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL,
+				user_id TEXT NOT NULL REFERENCES users(id), redirect_uri TEXT NOT NULL,
+				scopes TEXT NOT NULL, resource TEXT NOT NULL, challenge TEXT NOT NULL,
+				expires_at INTEGER NOT NULL
+			);
+			CREATE TABLE oauth_refresh (
+				token_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL,
+				user_id TEXT NOT NULL REFERENCES users(id), scopes TEXT NOT NULL,
+				resource TEXT NOT NULL, expires_at INTEGER NOT NULL
+			);
+			CREATE INDEX oauth_refresh_user ON oauth_refresh(user_id);
+			ALTER TABLE mcp_tokens ADD COLUMN client_id TEXT NOT NULL DEFAULT '';
+			ALTER TABLE mcp_tokens ADD COLUMN resource TEXT NOT NULL DEFAULT '';
+			PRAGMA user_version = 13;
+		`);
+	})();
+}

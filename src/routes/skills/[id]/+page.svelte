@@ -242,6 +242,8 @@
 					id={data.skill.id}
 					revision={data.revision}
 					projectRepository={data.projectRepository}
+					grant={data.grant}
+					grantMinutes={data.grantMinutes}
 				/>
 			{:else if details.mcp?.repository}
 				<RepositoryLink href={details.mcp.repository} />

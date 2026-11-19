@@ -3,6 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import { createSession, revokeSession, sessionCookie, sessionLifetime } from '#lib/server/auth.ts';
 import { entraCookie, finishEntraSignIn } from '#lib/server/entra.ts';
 import { appRoot, authRoot } from '#lib/server/paths.ts';
+import { pendingCookie } from '#lib/server/oauth.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url, locals }) => {
@@ -22,6 +23,9 @@ export const GET: RequestHandler = async ({ cookies, url, locals }) => {
 		);
 
 		if (locals.user?.id === user.id) destination = resolve('/account');
+		// Someone sent here by an agent's connection request resumes it rather than
+		// landing on the site, so the browser window the client opened can finish.
+		if (cookies.get(pendingCookie)) destination = `${resolve('/oauth/authorize')}?resume=1`;
 
 		revokeSession(cookies.get(sessionCookie));
 		cookies.set(sessionCookie, createSession(user.id, 'entra'), {

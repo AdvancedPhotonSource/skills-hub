@@ -106,11 +106,18 @@ test('SSO users publish skills without approval, discover, download, protect own
 	const guide = await page.request.get('/skill-install/prompt.md');
 	expect(guide.headers()['content-type']).toContain('text/markdown');
 	expect(await guide.text()).toContain('complete named skill directory');
+	// The prompt carries its own steps rather than pointing at that guide, which a
+	// command-line agent could not fetch without a session.
+	await expect(page.getByLabel('Installation prompt')).not.toHaveValue(/skill-install\/prompt\.md/);
 	await install.getByRole('button', { name: 'Command', exact: true }).click();
 	for (const runner of ['npx', 'bunx', 'pnpm']) {
 		await install.getByRole('button', { name: runner, exact: true }).click();
+		// The link carries a download grant, so the command works without the SSO cookie.
 		await expect(page.getByLabel('Installation command')).toHaveValue(
-			`${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1.7.4 add '${origin}${skillPath}/download?revision=1' --skill 'browser-test-skill'`
+			new RegExp(
+				`^${runner === 'pnpm' ? 'pnpm dlx' : runner} skills@1\\.7\\.4 add '${origin}${skillPath}` +
+					`/download\\?revision=1&grant=[A-Za-z0-9_-]+' --skill 'browser-test-skill'$`
+			)
 		);
 	}
 	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
@@ -384,11 +391,19 @@ test('SSO users publish MCPs without approval, with provenance, discovery, and t
 	await expect(page.getByRole('link', { name: 'test-xrf-mcp', exact: true })).toHaveCount(0);
 	await page.goto('/?type=mcp&context=2-id-d&technique=xrf');
 	await expect(page.getByRole('link', { name: 'test-xrf-mcp', exact: true })).toBeVisible();
-	await page.locator('summary').filter({ hasText: 'Find with your agent' }).click();
-	await page.getByLabel('What do you want to do?').fill('Analyze fluorescence maps.');
-	await expect(page.getByRole('region', { name: 'Discovery prompt' })).toContainText(
-		'Analyze fluorescence maps.'
+	// The homepage offers the MCP server for agents; the search box above it stays
+	// for people browsing.
+	await expect(page.getByRole('search')).toBeVisible();
+	await page.locator('summary').filter({ hasText: 'Connect your agent' }).click();
+	await expect(page.getByRole('region', { name: 'Add the hub to Claude Code' })).toContainText(
+		`claude mcp add --transport http aps-hub ${origin}/mcp`
 	);
+	await page.getByRole('button', { name: /configuration for other assistants/ }).click();
+	await expect(page.getByRole('region', { name: 'MCP server configuration' })).toContainText(
+		`"url": "${origin}/mcp"`
+	);
+	// The discovery skill remains a published catalog entry; only the homepage
+	// panel it used to drive has been replaced.
 	const zip = await page.request.get('/discovery/skill.zip');
 	expect(zip.ok()).toBe(true);
 	expect(

@@ -15,17 +15,29 @@
 	let {
 		id,
 		revision,
-		projectRepository
-	}: { id: string; revision: Revision; projectRepository: string | null } = $props();
+		projectRepository,
+		grant,
+		grantMinutes
+	}: {
+		id: string;
+		revision: Revision;
+		projectRepository: string | null;
+		grant: string;
+		grantMinutes: number;
+	} = $props();
 	let method = $state<'prompt' | 'command'>('prompt');
 	let runner = $state<PackageRunner>('npx');
 	let copiedText = $state('');
 	let copyError = $state('');
 	const hubUrl = $derived(new URL(resolve('/'), page.url.href).href.replace(/\/$/, ''));
-	const downloadUrl = $derived(`${hubUrl}/skills/${id}/download?revision=${revision.number}`);
+	// The grant travels in the link so the copied command works in a package runner
+	// or an agent, neither of which carries the SSO session cookie.
+	const downloadUrl = $derived(
+		`${hubUrl}/skills/${id}/download?revision=${revision.number}` + (grant ? `&grant=${grant}` : '')
+	);
 	const text = $derived(
 		method === 'prompt'
-			? installPrompt(`${hubUrl}/skill-install/prompt.md`, downloadUrl, revision.name)
+			? installPrompt(downloadUrl, revision.name, grantMinutes)
 			: installCommand(downloadUrl, revision.name, runner)
 	);
 	const githubUrl = $derived(revision.source ? sourceUrl(revision.source) : projectRepository);
@@ -81,7 +93,7 @@
 			class:command={method === 'command'}
 			readonly
 			value={text}
-			rows={method === 'prompt' ? 7 : 6}
+			rows={method === 'prompt' ? 10 : 6}
 			spellcheck="false"
 		></textarea>
 		<button class="button primary copy-button" onclick={copy}

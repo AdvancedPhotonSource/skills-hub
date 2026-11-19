@@ -58,6 +58,16 @@ test('every catalog surface is blocked server-side without an SSO session', asyn
 		});
 		expect(response.status(), method).toBe(401);
 	}
+	// The origin guard lives in hooks now, so prove it still refuses a genuine
+	// cross-site form POST to a cookie-authenticated route.
+	const crossSite = await request.post('/upload?/publish', {
+		headers: {
+			origin: 'https://evil.example',
+			'content-type': 'application/x-www-form-urlencoded'
+		},
+		data: 'applicationType=mcp'
+	});
+	expect(crossSite.status()).toBe(403);
 	const passwordLogin = await request.post('/sign-in', {
 		headers: { origin: 'http://127.0.0.1:4173' },
 		form: { username: 'haskels', password: 'anything' }
