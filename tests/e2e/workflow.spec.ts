@@ -391,11 +391,19 @@ test('SSO users publish MCPs without approval, with provenance, discovery, and t
 	await expect(page.getByRole('link', { name: 'test-xrf-mcp', exact: true })).toHaveCount(0);
 	await page.goto('/?type=mcp&context=2-id-d&technique=xrf');
 	await expect(page.getByRole('link', { name: 'test-xrf-mcp', exact: true })).toBeVisible();
-	await page.locator('summary').filter({ hasText: 'Find with your agent' }).click();
-	await page.getByLabel('What do you want to do?').fill('Analyze fluorescence maps.');
-	await expect(page.getByRole('region', { name: 'Discovery prompt' })).toContainText(
-		'Analyze fluorescence maps.'
+	// The homepage offers the MCP server for agents; the search box above it stays
+	// for people browsing.
+	await expect(page.getByRole('search')).toBeVisible();
+	await page.locator('summary').filter({ hasText: 'Connect your agent' }).click();
+	await expect(page.getByRole('region', { name: 'Add the hub to Claude Code' })).toContainText(
+		`claude mcp add --transport http aps-hub ${origin}/mcp`
 	);
+	await page.getByRole('button', { name: /configuration for other assistants/ }).click();
+	await expect(page.getByRole('region', { name: 'MCP server configuration' })).toContainText(
+		`"url": "${origin}/mcp"`
+	);
+	// The discovery skill remains a published catalog entry; only the homepage
+	// panel it used to drive has been replaced.
 	const zip = await page.request.get('/discovery/skill.zip');
 	expect(zip.ok()).toBe(true);
 	expect(

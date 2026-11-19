@@ -13,7 +13,7 @@
 	import { onMount } from 'svelte';
 	import { setPreference } from '#lib/preferences.ts';
 	import SkillList from '#lib/components/SkillList.svelte';
-	import DiscoveryPanel from '#lib/components/DiscoveryPanel.svelte';
+	import McpPanel from '#lib/components/McpPanel.svelte';
 	import { categoryName, roles, techniques } from '#lib/taxonomy.ts';
 	import { contextOptions, canonicalContext } from '#lib/contexts.ts';
 	let { data } = $props();
@@ -78,7 +78,7 @@
 					maxlength="200"
 				/><button type="submit" aria-label="Search"><ArrowRight size={20} /></button>
 			</form>
-			<DiscoveryPanel />
+			<McpPanel />
 			<div class="suggestions">
 				<span>Try</span>
 

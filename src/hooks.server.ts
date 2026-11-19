@@ -14,8 +14,23 @@ const publicRoutes = new Set([
 	'/auth/entra',
 	'/auth/callback/entra',
 	'/sign-out',
-	'/register'
+	'/register',
+	// The OAuth surface. A client reads the two discovery documents and registers
+	// before it can hold any token, and redeems a code at /oauth/token without a
+	// cookie, so these cannot sit behind the session gate. None of them expose
+	// catalog content: /oauth/authorize requires an SSO session before it shows
+	// anything, and the rest deal only in endpoints, scopes and PKCE-bound codes.
+	'/.well-known/oauth-protected-resource',
+	'/.well-known/oauth-authorization-server',
+	'/oauth/register',
+	'/oauth/token',
+	'/oauth/authorize'
 ]);
+// Endpoints spoken by non-browser clients, which send no Origin header. Each
+// authenticates by bearer token or PKCE rather than by cookie, so the CSRF
+// check the header provides is not what protects them. The consent form at
+// /oauth/authorize is a real browser form and keeps the check.
+const crossClientRoutes = new Set(['/mcp', '/oauth/token', '/oauth/register']);
 
 export const handle: Handle = async ({ event, resolve }) => {
 	// Defence in depth for GHSA-pfhg-q3qv-9q6r (protocol-relative form actions),
@@ -26,7 +41,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// reads cookies, so it cannot be driven by a browser's ambient credentials, and
 	// MCP clients are not browsers and send no Origin header. The size limit still applies.
 	if (!['GET', 'HEAD', 'OPTIONS'].includes(event.request.method)) {
-		if (event.route.id !== '/mcp' && event.request.headers.get('origin') !== event.url.origin)
+		if (
+			!crossClientRoutes.has(event.route.id || '') &&
+			event.request.headers.get('origin') !== event.url.origin
+		)
 			error(403, 'Request origin does not match this site.');
 		const length = Number(event.request.headers.get('content-length') || 0);
 		if (length > 12 * 1024 * 1024) error(413, 'Upload must be smaller than 12 MB.');
@@ -36,9 +54,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (!event.locals.user && event.cookies.get(sessionCookie))
 		event.cookies.delete(sessionCookie, { path: appRoot });
 
-	// Two surfaces authenticate themselves instead of using the session cookie, so the
-	// blanket gate defers to them. Neither widens access: the download route resolves its
-	// grant to a user and rejects an invalid one, and /mcp requires a bearer token.
+	// The download route authenticates itself instead of using the session cookie. It
+	// does not widen access: it resolves its grant to a user and rejects an invalid one.
 	const grantedDownload =
 		event.route.id === '/skills/[id]/download' &&
 		['GET', 'HEAD'].includes(event.request.method) &&

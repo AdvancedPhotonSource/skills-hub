@@ -3,6 +3,7 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { mcpEnabled, verifyAccessToken, bearerToken, mcpScopes } from '#lib/server/mcp-auth.ts';
 import { buildMcpServer } from '#lib/server/mcp.ts';
 import { appRoot } from '#lib/server/paths.ts';
+import { metadataUrl, resourceId } from '#lib/server/oauth.ts';
 import type { User } from '#lib/types.ts';
 
 // One handler for the process; the factory builds a per-request server from the
@@ -16,24 +17,26 @@ const handler = createMcpHandler((ctx) => {
 	return buildMcpServer(user, hubUrl, ctx.authInfo?.scopes ?? []);
 });
 
-const challenge = (reason: string) =>
+// RFC 6750 with the RFC 9728 pointer: this is how an unauthenticated client
+// discovers where to get a token, and the whole flow starts here.
+const challenge = (reason: string, origin: string) =>
 	new Response(JSON.stringify({ error: reason }), {
 		status: 401,
 		headers: {
 			'content-type': 'application/json',
-			// RFC 6750. The resource_metadata pointer (RFC 9728) is added with the
-			// authorization server; advertising a document that names no issuer
-			// would send clients somewhere that cannot mint tokens.
-			'WWW-Authenticate': `Bearer error="invalid_token", scope="${mcpScopes.join(' ')}"`
+			'WWW-Authenticate':
+				`Bearer error="invalid_token", ` +
+				`resource_metadata="${metadataUrl(origin)}", scope="${mcpScopes.join(' ')}"`
 		}
 	});
 
 export const POST = async ({ request }: import('./$types').RequestEvent) => {
 	if (!mcpEnabled) error(404, 'Not found.');
+	const origin = new URL(request.url).origin;
 	const token = bearerToken(request.headers.get('authorization'));
-	if (!token) return challenge('A bearer token is required.');
-	const verified = verifyAccessToken(token);
-	if (!verified) return challenge('The access token is invalid or expired.');
+	if (!token) return challenge('A bearer token is required.', origin);
+	const verified = verifyAccessToken(token, resourceId(origin, appRoot === '/' ? '' : appRoot));
+	if (!verified) return challenge('The access token is invalid or expired.', origin);
 	return handler.fetch(request, {
 		authInfo: {
 			token,

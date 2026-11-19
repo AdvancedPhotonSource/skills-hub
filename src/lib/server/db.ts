@@ -196,3 +196,34 @@ if ((db.pragma('user_version', { simple: true }) as number) < 12) {
 		`);
 	})();
 }
+
+if ((db.pragma('user_version', { simple: true }) as number) < 13) {
+	db.transaction(() => {
+		db.exec(`
+			CREATE TABLE oauth_clients (
+				client_id TEXT PRIMARY KEY, name TEXT NOT NULL, redirect_uris TEXT NOT NULL,
+				created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+			);
+			CREATE TABLE oauth_pending (
+				id TEXT PRIMARY KEY, client_id TEXT NOT NULL REFERENCES oauth_clients(client_id),
+				redirect_uri TEXT NOT NULL, scopes TEXT NOT NULL, resource TEXT NOT NULL,
+				challenge TEXT NOT NULL, state TEXT, expires_at INTEGER NOT NULL
+			);
+			CREATE TABLE oauth_codes (
+				code_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL,
+				user_id TEXT NOT NULL REFERENCES users(id), redirect_uri TEXT NOT NULL,
+				scopes TEXT NOT NULL, resource TEXT NOT NULL, challenge TEXT NOT NULL,
+				expires_at INTEGER NOT NULL
+			);
+			CREATE TABLE oauth_refresh (
+				token_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL,
+				user_id TEXT NOT NULL REFERENCES users(id), scopes TEXT NOT NULL,
+				resource TEXT NOT NULL, expires_at INTEGER NOT NULL
+			);
+			CREATE INDEX oauth_refresh_user ON oauth_refresh(user_id);
+			ALTER TABLE mcp_tokens ADD COLUMN client_id TEXT NOT NULL DEFAULT '';
+			ALTER TABLE mcp_tokens ADD COLUMN resource TEXT NOT NULL DEFAULT '';
+			PRAGMA user_version = 13;
+		`);
+	})();
+}
