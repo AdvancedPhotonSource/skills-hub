@@ -74,7 +74,16 @@ test('an agent connects through Argonne SSO and uses the hub without anyone hand
 	const code = returned.searchParams.get('code')!;
 	expect(code).toBeTruthy();
 
-	// 6. The client redeems the code itself, with no cookie of any kind.
+	// 6. The client redeems the code itself, with no cookie and no Origin header.
+	// A real agent is not a browser; if the framework's CSRF guard reached this
+	// endpoint it would reject every genuine client with 403.
+	const noOrigin = await request.post('/oauth/token', {
+		headers: { 'content-type': 'application/x-www-form-urlencoded' },
+		data: 'grant_type=authorization_code&code=bogus&code_verifier=x&redirect_uri=x&client_id=x'
+	});
+	expect(noOrigin.status()).toBe(400);
+	expect((await noOrigin.json()).error).toBe('invalid_grant');
+
 	const wrongVerifier = await request.post('/oauth/token', {
 		form: {
 			grant_type: 'authorization_code',
