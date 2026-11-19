@@ -1,5 +1,5 @@
 import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import { base } from '$app/paths';
+import { resolve } from '$app/paths';
 import { parseUpload, validatePackage, mcpPackage } from './packages';
 import {
 	classification,
@@ -18,7 +18,7 @@ import { inspectRepository, importDirectory } from './github';
 
 export const editorActions = {
 	owners: async ({ request, locals, params }: RequestEvent) => {
-		if (!locals.user) redirect(303, `${base}/sign-in`);
+		if (!locals.user) redirect(303, resolve(`sign-in`));
 		try {
 			if (!params.id) throw new HubError('Entry not found.', 404);
 			const form = await request.formData();
@@ -31,12 +31,13 @@ export const editorActions = {
 		} catch (error) {
 			return formError(error);
 		}
-		redirect(303, `${base}/skills/${params.id}`);
+		redirect(303, resolve(`skills/${params.id}`));
 	},
 	discover: async ({ request, locals }: RequestEvent) => {
-		if (!locals.user) redirect(303, `${base}/sign-in`);
+		if (!locals.user) redirect(303, resolve(`sign-in`));
 		if (!allowAttempt(`import:${locals.user.id}`, 30, 3600000))
 			return fail(429, { message: 'Import limit reached. Try again in an hour.' });
+
 		try {
 			const form = await request.formData();
 			requirePublisher(locals.user);
@@ -58,7 +59,7 @@ export const editorActions = {
 		}
 	},
 	preview: async ({ request, locals, params }: RequestEvent) => {
-		if (!locals.user) redirect(303, `${base}/sign-in`);
+		if (!locals.user) redirect(303, resolve(`sign-in`));
 		try {
 			if (params.id) requireOwner(params.id, locals.user);
 			requirePublisher(locals.user);
@@ -80,9 +81,10 @@ export const editorActions = {
 		}
 	},
 	publish: async ({ request, locals, params }: RequestEvent) => {
-		if (!locals.user) redirect(303, `${base}/sign-in`);
+		if (!locals.user) redirect(303, resolve(`sign-in`));
 		if (!allowAttempt(`publish:${locals.user.id}`, 30, 3600000))
 			return fail(429, { message: 'Publication limit reached. Try again in an hour.' });
+
 		let id;
 		try {
 			if (params.id) requireOwner(params.id, locals.user);
@@ -98,10 +100,10 @@ export const editorActions = {
 		} catch (error) {
 			return formError(error);
 		}
-		redirect(303, `${base}/skills/${id}`);
+		redirect(303, resolve(`skills/${id}`));
 	},
 	delete: async ({ request, locals, params }: RequestEvent) => {
-		if (!locals.user) redirect(303, `${base}/sign-in`);
+		if (!locals.user) redirect(303, resolve(`sign-in`));
 		try {
 			if (!params.id) throw new HubError('Entry not found.', 404);
 			const form = await request.formData();
@@ -109,7 +111,7 @@ export const editorActions = {
 		} catch (error) {
 			return formError(error);
 		}
-		redirect(303, `${base}/my-skills`);
+		redirect(303, resolve(`my-skills`));
 	}
 };
 
@@ -146,8 +148,10 @@ async function packageFromForm(form: FormData, id?: string) {
 	if (form.get('method') === 'github') {
 		if (id) throw new HubError('Imported files are managed from their upstream repository.');
 		const commit = String(form.get('commit') || '');
+
 		if (!/^[a-f0-9]{40}$/.test(commit))
 			throw new HubError('Find skills in the repository before importing.');
+
 		const snapshot = await inspectRepository(String(form.get('repository') || ''), commit);
 		const directory = String(form.get('directory') || '');
 		return importDirectory(

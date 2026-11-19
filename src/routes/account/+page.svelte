@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	let { data } = $props();
 </script>
 
@@ -22,7 +22,8 @@
 	{/if}
 	<p>All Argonne SSO users can publish skills and MCPs.</p>
 	<p>Sign-in and password management are handled by Argonne.</p>
-	<form method="POST" action={`${base}/sign-out`} style="margin-top: 24px">
+
+	<form method="POST" action={resolve(`sign-out`)} style="margin-top: 24px">
 		<button class="button">Sign out</button>
 	</form>
 </section>

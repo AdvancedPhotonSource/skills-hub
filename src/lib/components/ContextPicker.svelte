@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { ChevronDown } from '@lucide/svelte';
-	import { beamlines, facilities, canonicalContext, beamlineDirectoryUrl } from '$lib/contexts';
+	import { beamlines, facilities, canonicalContext, beamlineDirectoryUrl } from '#lib/contexts.ts';
 	let { contexts = ['aps'] }: { contexts?: string[] } = $props();
 	let selected = $state(untrack(() => contexts.map((value) => canonicalContext(value) || value)));
 	const unknown = $derived(contexts.filter((value) => !canonicalContext(value)));

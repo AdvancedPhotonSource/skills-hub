@@ -1,9 +1,9 @@
 import { error, redirect } from '@sveltejs/kit';
-import { base } from '$app/paths';
-import { entraEnabled } from '$lib/server/entra';
+import { resolve } from '$app/paths';
+import { entraEnabled } from '#lib/server/entra.ts';
 
 export const load = ({ locals, url }: import('./$types').PageServerLoadEvent) => {
-	if (locals.user) redirect(303, `${base}/my-skills`);
+	if (locals.user) redirect(303, resolve(`my-skills`));
 	return {
 		entraEnabled: entraEnabled(),
 		ssoError:

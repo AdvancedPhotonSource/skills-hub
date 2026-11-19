@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { ArrowRight } from '@lucide/svelte';
 	let {
 		entraEnabled = false,
@@ -18,7 +18,7 @@
 	{#if ssoError}<div class="notice error" role="alert">{ssoError}</div>{/if}
 	<div class="form-card">
 		{#if entraEnabled}
-			<a class="button primary" href={`${base}/auth/entra`} data-sveltekit-reload
+			<a class="button primary" href={resolve(`auth/entra`)} data-sveltekit-reload
 				>Sign in with Argonne <ArrowRight size={16} /></a
 			>
 			<p class="small-text muted">

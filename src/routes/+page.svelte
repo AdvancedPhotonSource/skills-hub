@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import {
 		Search,
 		SlidersHorizontal,
@@ -11,11 +11,11 @@
 		Grid2X2
 	} from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { setPreference } from '$lib/preferences';
-	import SkillList from '$lib/components/SkillList.svelte';
-	import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
-	import { categoryName, roles, techniques } from '$lib/taxonomy';
-	import { contextOptions, canonicalContext } from '$lib/contexts';
+	import { setPreference } from '#lib/preferences.ts';
+	import SkillList from '#lib/components/SkillList.svelte';
+	import DiscoveryPanel from '#lib/components/DiscoveryPanel.svelte';
+	import { categoryName, roles, techniques } from '#lib/taxonomy.ts';
+	import { contextOptions, canonicalContext } from '#lib/contexts.ts';
 	let { data } = $props();
 	let showFilters = $state(false);
 	let grid = $state(true);
@@ -27,9 +27,11 @@
 	const urlWith = (key: string, value: string) => {
 		const params = new URLSearchParams(data.filters);
 		params.delete('page');
+
 		if (value) params.set(key, value);
 		else params.delete(key);
-		return `${base}/?${params}`;
+
+		return resolve(`?${params}`);
 	};
 	let activeFilters = $derived(
 		Object.entries(data.filters).filter(
@@ -51,17 +53,24 @@
 			<h1>
 				{#if searching}Search the library.{:else}Find the skill for<br />your next task.{/if}
 			</h1>
-			{#if !searching}<p>
-					Skills and MCPs for your AI agents.<br class="desktop-break" /> Beamline controls, scientific
-					analysis, and APS expertise in one place.
-				</p>{/if}
-			<form class="search-box" action={`${base}/`} method="GET" role="search">
-				{#each Object.entries(data.filters).filter(([key]) => !['q', 'page'].includes(key)) as [key, value]}<input
-						type="hidden"
-						name={key}
-						{value}
-					/>{/each}
-				<Search size={20} /><label class="sr-only" for="search">Search skills and MCPs</label><input
+
+			{#if !searching}
+				<p>
+					Skills and MCPs for your AI agents.
+					<br class="desktop-break" />
+					Beamline controls, scientific analysis, and APS expertise in one place.
+				</p>
+			{/if}
+
+			<form class="search-box" action={resolve('/')} method="GET" role="search">
+				{#each Object.entries(data.filters).filter(([key]) => !['q', 'page'].includes(key)) as [key, value]}
+					<input type="hidden" name={key} {value} />
+				{/each}
+
+				<Search size={20} />
+				<label class="sr-only" for="search">Search skills and MCPs</label>
+
+				<input
 					id="search"
 					name="q"
 					value={data.query}
@@ -71,17 +80,20 @@
 			</form>
 			<DiscoveryPanel />
 			<div class="suggestions">
-				<span>Try</span>{#each ['ptychography', 'XRF', 'HDF5'] as keyword}<a
-						href={`${base}/?q=${keyword}`}>{keyword}</a
-					>{/each}
+				<span>Try</span>
+
+				{#each ['ptychography', 'XRF', 'HDF5'] as keyword}
+					<a href={resolve(`?q=${keyword}`)}>{keyword}</a>
+				{/each}
 			</div>
 		</div>
 		{#if !searching}<div class="hero-note">
 				<div class="note-icon"><Layers size={24} strokeWidth={1.5} /></div>
 				<h2>Internal expertise.<br />A better starting point.</h2>
 				<p>Explore a skill, read the instructions, and bring it into the tools you already use.</p>
-				<a href={`${base}/categories`}>Browse by category <ArrowRight size={15} /></a>
-			</div>{/if}
+				<a href={resolve(`categories`)}>Browse by category <ArrowRight size={15} /></a>
+			</div>
+		{/if}
 	</div>
 </section>
 
@@ -107,30 +119,37 @@
 				class:selected={data.filters.category === category.id ||
 					data.taxonomy.some((c) => c.id === data.filters.category && c.parent === category.id)}
 				href={urlWith('category', category.id)}
-				><span>{category.name}</span><span>{category.count}</span></a
 			>
-			{#if data.filters.category === category.id || data.taxonomy.some((c) => c.id === data.filters.category && c.parent === category.id)}<div
-					class="subcategories"
-				>
-					{#each data.taxonomy.filter((c) => c.parent === category.id) as child}<a
+				<span>{category.name}</span>
+				<span>{category.count}</span>
+			</a>
+
+			{#if data.filters.category === category.id || data.taxonomy.some((c) => c.id === data.filters.category && c.parent === category.id)}
+				<div class="subcategories">
+					{#each data.taxonomy.filter((c) => c.parent === category.id) as child}
+						<a
 							class:selected={data.filters.category === child.id}
 							href={urlWith('category', child.id)}>{child.name}<span>{child.count}</span></a
 						>{/each}
 				</div>{/if}
 		{/each}
-		<form method="GET" action={`${base}/`} class="secondary-filters">
-			{#each Object.entries(data.filters).filter(([key]) => !['context', 'technique', 'provenance', 'role', 'days', 'origin', 'exact', 'page'].includes(key)) as [key, value]}<input
-					type="hidden"
-					name={key}
-					{value}
-				/>{/each}
+
+		<form method="GET" action={resolve('/')} class="secondary-filters">
+			{#each Object.entries(data.filters).filter(([key]) => !['context', 'technique', 'provenance', 'role', 'days', 'origin', 'exact', 'page'].includes(key)) as [key, value]}
+				<input type="hidden" name={key} {value} />
+			{/each}
+
 			<div class="field">
 				<label for="context">Facility / beamline</label><select
 					id="context"
 					name="context"
 					value={canonicalContext(data.filters.context || '') || ''}
-					><option value="">All facilities / beamlines</option>
-					{#each contextOptions as [value, label]}<option {value}>{label}</option>{/each}
+				>
+					<option value="">All facilities / beamlines</option>
+
+					{#each contextOptions as [value, label]}
+						<option {value}>{label}</option>
+					{/each}
 				</select>
 			</div>
 			<div class="field">
@@ -138,10 +157,13 @@
 					id="technique"
 					name="technique"
 					value={data.filters.technique || ''}
-					><option value="">All techniques</option>{#each techniques as [value, label]}<option
-							{value}>{label}</option
-						>{/each}</select
 				>
+					<option value="">All techniques</option>
+
+					{#each techniques as [value, label]}
+						<option {value}>{label}</option>
+					{/each}
+				</select>
 			</div>
 			<details
 				class="more-filters"
@@ -159,39 +181,49 @@
 						id="provenance"
 						name="provenance"
 						value={data.filters.provenance || ''}
-						><option value="">All authorship</option><option value="argonne"
-							>Argonne-authored</option
-						><option value="external">External</option><option value="adapted">Adapted</option
-						></select
 					>
+						<option value="">All authorship</option>
+						<option value="argonne">Argonne-authored</option>
+						<option value="external">External</option>
+						<option value="adapted">Adapted</option>
+					</select>
 				</div>
 				<div class="field">
 					<label for="role">Role</label><select
 						name="role"
 						id="role"
 						value={data.filters.role || ''}
-						><option value="">All roles</option>{#each roles as role}<option>{role}</option
-							>{/each}</select
 					>
+						<option value="">All roles</option>
+
+						{#each roles as role}
+							<option>{role}</option>
+						{/each}
+					</select>
 				</div>
 				<div class="field">
 					<label for="days">Updated</label><select
 						name="days"
 						id="days"
 						value={data.filters.days || ''}
-						><option value="">Any time</option><option value="7">Past week</option><option
-							value="30">Past month</option
-						><option value="90">Past 90 days</option><option value="365">Past year</option></select
 					>
+						<option value="">Any time</option>
+						<option value="7">Past week</option>
+						<option value="30">Past month</option>
+						<option value="90">Past 90 days</option>
+						<option value="365">Past year</option>
+					</select>
 				</div>
 				<div class="field">
 					<label for="origin">Source</label><select
 						id="origin"
 						name="origin"
 						value={data.filters.origin || ''}
-						><option value="">All sources</option><option value="imported">GitHub imports</option
-						><option value="uploaded">Local uploads</option></select
 					>
+						<option value="">All sources</option>
+						<option value="imported">GitHub imports</option>
+						<option value="uploaded">Local uploads</option>
+					</select>
 				</div>
 				<label class="check-label"
 					><input type="checkbox" name="exact" value="1" checked={data.filters.exact === '1'} /> Exact
@@ -204,7 +236,7 @@
 			<Sparkles size={17} />
 			<h3>Have a workflow worth sharing?</h3>
 			<p>Turn what you know into a skill others can use.</p>
-			<a href={`${base}/upload`}>Share a skill <ArrowRight size={13} /></a>
+			<a href={resolve(`upload`)}>Share a skill <ArrowRight size={13} /></a>
 		</div>
 	</aside>
 	<section class="results" aria-label="Search results">
@@ -260,12 +292,15 @@
 					onclick={() => (showFilters = !showFilters)}
 					><SlidersHorizontal size={14} /> Filters</button
 				>
-				<form method="GET" action={`${base}/`}>
-					{#each Object.entries(data.filters).filter(([key]) => !['sort', 'page'].includes(key)) as [key, value]}<input
-							type="hidden"
-							name={key}
-							{value}
-						/>{/each}<label class="sr-only" for="sort">Sort skills</label><select
+
+				<form method="GET" action={resolve('/')}>
+					{#each Object.entries(data.filters).filter(([key]) => !['sort', 'page'].includes(key)) as [key, value]}
+						<input type="hidden" name={key} {value} />
+					{/each}
+
+					<label class="sr-only" for="sort">Sort skills</label>
+
+					<select
 						name="sort"
 						id="sort"
 						value={data.filters.sort || 'relevance'}
@@ -286,12 +321,22 @@
 								? 'Exact name'
 								: key === 'days'
 									? `Past ${value} days`
-									: value}<X size={12} /></a
-					>{/each}<a class="small-text" href={`${base}/?q=${encodeURIComponent(data.query)}`}
+									: value}
+
+						<X size={12} />
+					</a>
+				{/each}
+
+				<a class="small-text" href={resolve(`?q=${encodeURIComponent(data.query)}`)}
 					>Clear filters</a
 				>
-			</div>{/if}
-		{#if data.skills.length}<SkillList skills={data.skills} />{:else}<div class="empty">
+			</div>
+		{/if}
+
+		{#if data.skills.length}
+			<SkillList skills={data.skills} />
+		{:else}
+			<div class="empty">
 				<Search size={30} />
 				<h2>
 					{data.query || activeFilters.length
@@ -303,17 +348,29 @@
 						? 'Try a broader search or remove a filter to explore more of the library.'
 						: 'Publish the first skill to give your colleagues a useful starting point.'}
 				</p>
-				<a class="button" href={`${base}/${data.query || activeFilters.length ? '' : 'upload'}`}
+
+				<a class="button" href={resolve(data.query || activeFilters.length ? '/' : '/upload')}
 					>{data.query || activeFilters.length ? 'Explore all skills' : 'Upload a skill'}</a
 				>
-			</div>{/if}
-		{#if data.pages > 1}<div class="pagination">
-				{#if data.page > 1}<a href={urlWith('page', String(data.page - 1))}>Previous</a>
-				{:else}<span aria-disabled="true">Previous</span>{/if}
-				<span>Page {data.page} of {data.pages}</span>{#if data.page < data.pages}<a
-						href={urlWith('page', String(data.page + 1))}>Next</a
-					>{/if}
-			</div>{/if}
+			</div>
+		{/if}
+
+		{#if data.pages > 1}
+			<div class="pagination">
+				{#if data.page > 1}
+					<a href={urlWith('page', String(data.page - 1))}>Previous</a>
+				{:else}
+					<span aria-disabled="true">Previous</span>
+				{/if}
+
+				<span>Page {data.page} of {data.pages}</span>
+
+				{#if data.page < data.pages}
+					<a href={urlWith('page', String(data.page + 1))}>Next</a>
+				{/if}
+			</div>
+		{/if}
+
 		<div class="library-note">
 			<Layers size={16} /><span
 				>Skills are portable folders built around a <code>SKILL.md</code> file. Download one and add it

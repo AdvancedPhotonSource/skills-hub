@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import {
 		Download,
 		FileText,
@@ -12,15 +12,15 @@
 		GitBranch,
 		ExternalLink
 	} from '@lucide/svelte';
-	import { categoryName, categoryTone, techniqueName, provenanceName } from '$lib/taxonomy';
-	import InstallCard from '$lib/components/InstallCard.svelte';
-	import McpCard from '$lib/components/McpCard.svelte';
-	import RepositoryLink from '$lib/components/RepositoryLink.svelte';
-	import FileExplorer from '$lib/components/FileExplorer.svelte';
-	import SkillList from '$lib/components/SkillList.svelte';
-	import OwnerLinks from '$lib/components/OwnerLinks.svelte';
-	import Markdown from '$lib/components/Markdown.svelte';
-	import { sourceUrl, repositoryUrl } from '$lib/source';
+	import { categoryName, categoryTone, techniqueName, provenanceName } from '#lib/taxonomy.ts';
+	import InstallCard from '#lib/components/InstallCard.svelte';
+	import McpCard from '#lib/components/McpCard.svelte';
+	import RepositoryLink from '#lib/components/RepositoryLink.svelte';
+	import FileExplorer from '#lib/components/FileExplorer.svelte';
+	import SkillList from '#lib/components/SkillList.svelte';
+	import OwnerLinks from '#lib/components/OwnerLinks.svelte';
+	import Markdown from '#lib/components/Markdown.svelte';
+	import { sourceUrl, repositoryUrl } from '#lib/source.ts';
 	let { data } = $props();
 	const details = $derived(data.revision.details);
 	const fileUrl = (path: string, view = '') => {
@@ -39,17 +39,24 @@
 <div class="shell detail-shell">
 	<div class="page-head">
 		<div class="breadcrumbs">
-			<a href={`${base}/`}>Explore</a><ChevronRight size={13} /><a
-				href={`${base}/?category=${data.skill.categories[0]}`}
+			<a href={resolve('/')}>Explore</a>
+			<ChevronRight size={13} />
+
+			<a href={resolve(`?category=${data.skill.categories[0]}`)}
 				>{categoryName(data.skill.categories[0])}</a
-			><ChevronRight size={13} /><span>{data.revision.name}</span>
+			>
+
+			<ChevronRight size={13} />
+			<span>{data.revision.name}</span>
 		</div>
 		{#if data.skill.archived}<div class="notice">
 				This skill is archived. It is visible only to its owner and administrators.
 			</div>{/if}{#if data.revision.number !== data.skill.revision}<div class="notice">
 				You’re viewing an older version.
-				<a href={`${base}/skills/${data.skill.id}`}>View the current version</a>
-			</div>{/if}
+				<a href={resolve(`skills/${data.skill.id}`)}>View the current version</a>
+			</div>
+		{/if}
+
 		<div class="detail-heading">
 			<div class="detail-icon tone" data-tone={categoryTone(data.skill.categories[0])}>
 				{#if details.applicationType === 'collection'}<Layers
@@ -87,19 +94,39 @@
 					size={13}
 				/><span>{data.skill.downloads} downloads</span>{/if}
 		</div>
-		{#if data.collections.length}<div class="source-line">
-				<Layers size={15} /><span
-					>Part of {#each data.collections as collection, i}{#if i},
-						{/if}<a href={`${base}/skills/${collection.id}`}
+
+		{#if data.collections.length}
+			<div class="source-line">
+				<Layers size={15} />
+
+				<span>
+					Part of
+
+					{#each data.collections as collection, i}
+						{#if i}
+							,
+						{/if}
+
+						<a href={resolve(`skills/${collection.id}`)}
 							>{collection.collectionTitle || collection.name}</a
-						>{/each}</span
-				>
-			</div>{/if}
-		{#if data.revision.source}<div class="source-line">
-				<a href={sourceUrl(data.revision.source)} target="_blank" rel="noreferrer"
-					><GitBranch size={15} />View original source <ExternalLink size={12} /></a
-				><span
-					>Imported from commit <a
+						>
+					{/each}
+				</span>
+			</div>
+		{/if}
+
+		{#if data.revision.source}
+			<div class="source-line">
+				<a href={sourceUrl(data.revision.source)} target="_blank" rel="noreferrer">
+					<GitBranch size={15} />
+					View original source
+					<ExternalLink size={12} />
+				</a>
+
+				<span>
+					Imported from commit
+
+					<a
 						href={`${repositoryUrl(data.revision.source)}/commit/${data.revision.source.commit}`}
 						target="_blank"
 						rel="noreferrer"><code>{data.revision.source.commit.slice(0, 12)}</code></a
@@ -145,8 +172,9 @@
 										href={fileUrl(data.path, 'source')}>Source</a
 									>{/if}<a
 									aria-label="Download file"
-									href={`${base}/skills/${data.skill.id}/file?revision=${data.revision.number}&path=${encodeURIComponent(data.path)}`}
-									><Download size={14} /></a
+									href={resolve(
+										`skills/${data.skill.id}/file?revision=${data.revision.number}&path=${encodeURIComponent(data.path)}`
+									)}><Download size={14} /></a
 								>
 							</div>
 						</div>
@@ -203,7 +231,7 @@
 					</p>
 					<a
 						class="button primary"
-						href={`${base}/skills/${data.skill.id}/download?revision=${data.revision.number}`}
+						href={resolve(`skills/${data.skill.id}/download?revision=${data.revision.number}`)}
 						><Download size={15} />Download collection</a
 					>
 				</section>
@@ -257,33 +285,47 @@
 						<dd class="tags">
 							{#each details.contexts as context}<a
 									class="badge"
-									href={`${base}/?context=${encodeURIComponent(context)}`}
+									href={resolve(`?context=${encodeURIComponent(context)}`)}
 									>{context.toUpperCase()}</a
-								>{/each}
-						</dd>{/if}
-					{#if details.techniques.length}<dt>Scientific techniques</dt>
+								>
+							{/each}
+						</dd>
+					{/if}
+
+					{#if details.techniques.length}
+						<dt>Scientific techniques</dt>
+
 						<dd class="tags">
 							{#each details.techniques as technique}<a
 									class="badge"
-									href={`${base}/?technique=${technique}`}>{techniqueName(technique)}</a
-								>{/each}
-						</dd>{/if}
+									href={resolve(`?technique=${technique}`)}>{techniqueName(technique)}</a
+								>
+							{/each}
+						</dd>
+					{/if}
+
 					<dt>Workflow</dt>
 					<dd class="tags">
 						{#each data.skill.categories as category}<a
 								class="badge category-chip"
 								data-tone={categoryTone(category)}
-								href={`${base}/?category=${category}`}>{categoryName(category)}</a
-							>{/each}
+								href={resolve(`?category=${category}`)}>{categoryName(category)}</a
+							>
+						{/each}
 					</dd>
 					{#if data.skill.tags.length}<dt>Technologies</dt>
 						<dd class="tags">
 							{#each data.skill.tags as tag}<a
 									class="badge"
-									href={`${base}/?tag=${encodeURIComponent(tag)}`}>{tag}</a
-								>{/each}
-						</dd>{/if}{#if data.skill.role}<dt>Useful for</dt>
-						<dd>{data.skill.role}</dd>{/if}
+									href={resolve(`?tag=${encodeURIComponent(tag)}`)}>{tag}</a
+								>
+							{/each}
+						</dd>
+					{/if}{#if data.skill.role}
+						<dt>Useful for</dt>
+						<dd>{data.skill.role}</dd>
+					{/if}
+
 					<dt>{data.revision.source ? 'Upstream license declaration' : 'License'}</dt>
 					<dd>
 						{details.applicationType === 'collection'
@@ -300,17 +342,20 @@
 						<dd>{data.revision.compatibility}</dd>{/if}
 				</dl>
 			</section>
-			{#if data.canEdit}<a class="button manage" href={`${base}/skills/${data.skill.id}/edit`}
-					><Pencil size={14} />Manage {details.applicationType === 'mcp'
-						? 'MCP'
-						: details.applicationType}</a
-				>{/if}
+
+			{#if data.canEdit}
+				<a class="button manage" href={resolve(`skills/${data.skill.id}/edit`)}>
+					<Pencil size={14} />
+					Manage {details.applicationType === 'mcp' ? 'MCP' : details.applicationType}
+				</a>
+			{/if}
 		</aside>
 	</div>
 	{#if data.related.length}<section class="related">
 			<div class="section-heading">
 				<h2>Keep exploring</h2>
-				<a href={`${base}/?category=${data.skill.categories[0]}`} class="small-text"
+
+				<a href={resolve(`?category=${data.skill.categories[0]}`)} class="small-text"
 					>More in this category <ArrowRight size={13} /></a
 				>
 			</div>

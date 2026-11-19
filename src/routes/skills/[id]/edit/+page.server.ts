@@ -1,12 +1,12 @@
 import { error, redirect } from '@sveltejs/kit';
-import { base } from '$app/paths';
-import { requireOwner, collectionChoices, collectionMembers } from '$lib/server/catalog';
-import { editorActions } from '$lib/server/editor';
-import { HubError } from '$lib/server/errors';
-import { db } from '$lib/server/db';
-import type { Owner } from '$lib/types';
+import { resolve } from '$app/paths';
+import { requireOwner, collectionChoices, collectionMembers } from '#lib/server/catalog.ts';
+import { editorActions } from '#lib/server/editor.ts';
+import { HubError } from '#lib/server/errors.ts';
+import { db } from '#lib/server/db.ts';
+import type { Owner } from '#lib/types.ts';
 export const load = ({ locals, params }: import('./$types').PageServerLoadEvent) => {
-	if (!locals.user) redirect(303, `${base}/sign-in`);
+	if (!locals.user) redirect(303, resolve(`sign-in`));
 	try {
 		const skill = requireOwner(params.id, locals.user);
 		return {

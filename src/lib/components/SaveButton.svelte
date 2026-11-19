@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Bookmark, BookmarkCheck } from '@lucide/svelte';
-	import { savedIds, toggleSaved } from '$lib/preferences';
+	import { savedIds, toggleSaved } from '#lib/preferences.ts';
 	let { id }: { id: string } = $props();
 	let saved = $state(false);
 	let message = $state('');

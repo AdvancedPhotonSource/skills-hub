@@ -1,12 +1,17 @@
 <script lang="ts">
 	import '../app.css';
-	import argonneLogo from '$lib/argonne-logo.svg?raw';
-	import { base } from '$app/paths';
+	import argonneLogo from '#lib/argonne-logo.svg?raw';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Upload, Menu, X, Moon, Sun } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { setPreference } from '$lib/preferences';
+	import { setPreference } from '#lib/preferences.ts';
 	let { data, children } = $props();
+	const navLinks = [
+		['/', 'Explore'],
+		['/categories', 'Categories'],
+		['/saved', 'Saved']
+	] as const;
 	let menu = $state(false);
 	let dark = $state(false);
 	onMount(() => {
@@ -35,49 +40,63 @@
 					dark = !dark;
 					setPreference('theme', dark ? 'dark' : 'light');
 				}}
-				>{#if dark}<Sun size={18} />{:else}<Moon size={18} />{/if}</button
 			>
+				{#if dark}
+					<Sun size={18} />
+				{:else}
+					<Moon size={18} />
+				{/if}
+			</button>
 		</div>
 	</div>
 </div>
 <header class="site-header">
 	<div class="shell header-inner">
-		<a class="brand" href={`${base}/`} aria-label="APS Skills Hub home"
+		<a class="brand" href={resolve('/')} aria-label="APS Skills Hub home"
 			><span>APS <strong>Skills Hub</strong></span></a
 		>
+
 		{#if data.user}
 			<button
 				class="icon-button mobile-menu"
 				aria-label={menu ? 'Close navigation' : 'Open navigation'}
 				aria-expanded={menu}
 				onclick={() => (menu = !menu)}
-				>{#if menu}<X size={22} />{:else}<Menu size={22} />{/if}</button
 			>
+				{#if menu}
+					<X size={22} />
+				{:else}
+					<Menu size={22} />
+				{/if}
+			</button>
+
 			<nav class:open={menu} aria-label="Main navigation">
-				{#each [['/', 'Explore'], ['/categories', 'Categories'], ['/saved', 'Saved']] as [path, label]}
+				{#each navLinks as [path, label]}
 					<a
-						class:active={page.url.pathname === `${base}${path}`}
-						href={`${base}${path}`}
+						class:active={page.url.pathname === resolve(path)}
+						href={resolve(path)}
 						onclick={() => (menu = false)}>{label}</a
 					>
 				{/each}
 				<a
-					class:active={page.url.pathname === `${base}/my-skills`}
-					href={`${base}/my-skills`}
+					class:active={page.url.pathname === resolve('/my-skills')}
+					href={resolve('/my-skills')}
 					onclick={() => (menu = false)}>My contributions</a
 				>
-				<a class="button primary small" href={`${base}/upload`} onclick={() => (menu = false)}
+
+				<a class="button primary small" href={resolve('/upload')} onclick={() => (menu = false)}
 					><Upload size={15} /> Publish</a
 				>
+
 				<a
 					class="account-link"
-					href={`${base}/account`}
+					href={resolve('/account')}
 					onclick={() => (menu = false)}
 					aria-label={`Account: ${data.user.username}`}
-					><span class="avatar">{data.user.displayName.slice(0, 1).toUpperCase()}</span><span
-						class="account-name">{data.user.username}</span
-					></a
 				>
+					<span class="avatar">{data.user.displayName.slice(0, 1).toUpperCase()}</span>
+					<span class="account-name">{data.user.username}</span>
+				</a>
 			</nav>
 		{/if}
 	</div>
@@ -86,6 +105,10 @@
 <footer class="site-footer shell">
 	<span>APS Skills Hub <span class="footer-divider">/</span> Built for shared expertise.</span>
 	<div>
-		{#if data.user}<a href={`${base}/docs/api`}>API Docs</a>{/if}<span>Argonne internal</span>
+		{#if data.user}
+			<a href={resolve(`docs/api`)}>API Docs</a>
+		{/if}
+
+		<span>Argonne internal</span>
 	</div>
 </footer>

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import CodeBlock from './CodeBlock.svelte';
 	let task = $state('');
-	const hub = $derived(`${page.url.origin}${base}`);
+	const hub = $derived(`${page.url.origin}${resolve('')}`);
 	const prompt = $derived(
 		`Read ${hub}/discovery/SKILL.md and use its workflow to search ${hub} for skills or MCPs relevant to this task:\n\n${task.trim() || '[Describe my use case]'}\n\nRecommend the best matches with links, requirements, and any gaps. Search only; do not install or run anything.`
 	);
@@ -22,7 +22,7 @@
 		></textarea>
 		<p>Copy this prompt to your agent. It searches the live hub and compares matches.</p>
 		<CodeBlock code={prompt} label="Discovery prompt" />
-		<a href={`${base}/discovery/skill.zip`}>Download discovery skill</a>
+		<a href={resolve(`discovery/skill.zip`)}>Download discovery skill</a>
 	</div>
 </details>
 

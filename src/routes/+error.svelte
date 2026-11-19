@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 </script>
 
 <svelte:head><title>{page.status} · APS Skills Hub</title></svelte:head>
@@ -9,6 +9,6 @@
 		<span class="eyebrow" style="justify-content:center">{page.status}</span>
 		<h1>{page.status === 404 ? 'Page not found' : 'Unable to complete this request'}</h1>
 		<p>{page.error?.message}</p>
-		<a class="button" href={`${base}/`}>Explore skills</a>
+		<a class="button" href={resolve('/')}>Explore skills</a>
 	</div>
 </div>

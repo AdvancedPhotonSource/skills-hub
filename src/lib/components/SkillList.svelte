@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import {
 		FileText,
 		Plug,
@@ -9,9 +9,9 @@
 		GitBranch,
 		ExternalLink
 	} from '@lucide/svelte';
-	import { categoryName, categoryTone, provenanceName } from '$lib/taxonomy';
-	import { repositoryUrl } from '$lib/source';
-	import type { Skill } from '$lib/types';
+	import { categoryName, categoryTone, provenanceName } from '#lib/taxonomy.ts';
+	import { repositoryUrl } from '#lib/source.ts';
+	import type { Skill } from '#lib/types.ts';
 	import OwnerLinks from './OwnerLinks.svelte';
 	let { skills }: { skills: Skill[] } = $props();
 </script>
@@ -35,12 +35,16 @@
 						<Layers size={14} /> Collection <span>{skill.memberCount} entries</span>
 					</div>{/if}
 				<div class="title-row">
-					<a class="skill-name" href={`${base}/skills/${skill.id}`}
-						>{skill.collectionTitle || skill.name}<ArrowUpRight size={15} /></a
-					>{#if skill.applicationType === 'mcp'}<span class="badge blue">MCP</span
-						>{/if}{#if skill.provenance !== 'argonne'}<span class="badge"
-							>{provenanceName[skill.provenance]}</span
-						>{/if}
+					<a class="skill-name" href={resolve(`skills/${skill.id}`)}>
+						{skill.collectionTitle || skill.name}
+						<ArrowUpRight size={15} />
+					</a>
+
+					{#if skill.applicationType === 'mcp'}
+						<span class="badge blue">MCP</span>
+					{/if}{#if skill.provenance !== 'argonne'}
+						<span class="badge">{provenanceName[skill.provenance]}</span>
+					{/if}
 				</div>
 				<p>{skill.description}</p>
 				<div class="skill-meta">
@@ -48,8 +52,9 @@
 					></span>{#each skill.categories.slice(0, 2) as category}<a
 							class="category category-chip"
 							data-tone={categoryTone(category)}
-							href={`${base}/?category=${category}`}>{categoryName(category)}</a
-						>{/each}
+							href={resolve(`?category=${category}`)}>{categoryName(category)}</a
+						>
+					{/each}
 				</div>
 			</div>
 			{#if repository}

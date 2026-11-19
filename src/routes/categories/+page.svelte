@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { ArrowUpRight, Layers } from '@lucide/svelte';
-	import { categoryTone } from '$lib/taxonomy';
+	import { categoryTone } from '#lib/taxonomy.ts';
 	let { data } = $props();
 </script>
 
@@ -21,17 +21,20 @@
 				data-tone={categoryTone(domain.id)}
 			>
 				<div class="domain-head">
-					<a href={`${base}/?category=${domain.id}`}
+					<a href={resolve(`?category=${domain.id}`)}
 						><h2>{domain.name}</h2>
 						<ArrowUpRight size={17} /></a
-					><span>{domain.count} {domain.count === 1 ? 'entry' : 'entries'}</span>
+					>
+					<span>{domain.count} {domain.count === 1 ? 'entry' : 'entries'}</span>
 				</div>
 				<ul>
-					{#each data.taxonomy.filter((c) => c.parent === domain.id) as category}<li>
-							<a href={`${base}/?category=${category.id}`}
+					{#each data.taxonomy.filter((c) => c.parent === domain.id) as category}
+						<li>
+							<a href={resolve(`?category=${category.id}`)}
 								>{category.name}<span>{category.count}</span></a
 							>
-						</li>{/each}
+						</li>
+					{/each}
 				</ul>
 			</section>{/each}
 	</div>

@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { getSkill, revisionFor } from '$lib/server/catalog';
-import { HubError } from '$lib/server/errors';
+import { getSkill, revisionFor } from '#lib/server/catalog.ts';
+import { HubError } from '#lib/server/errors.ts';
 export const GET = ({ params }: import('./$types').RequestEvent) => {
 	try {
 		const skill = getSkill(params.id);

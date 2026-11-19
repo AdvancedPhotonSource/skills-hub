@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { loadMathJax } from '$lib/mathjax';
+	import { loadMathJax } from '#lib/mathjax.ts';
 	let { html }: { html: string } = $props();
 	let failed = $state(false);
 

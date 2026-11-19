@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { Upload, FolderOpen } from '@lucide/svelte';
-	import SkillList from '$lib/components/SkillList.svelte';
+	import SkillList from '#lib/components/SkillList.svelte';
 	let { data } = $props();
 </script>
 
@@ -12,7 +12,7 @@
 			<h1>My contributions</h1>
 			<p>Skills, MCPs, and collections you own.</p>
 		</div>
-		<a class="button primary" href={`${base}/upload`}><Upload size={16} />Publish</a>
+		<a class="button primary" href={resolve(`upload`)}><Upload size={16} />Publish</a>
 	</div>
 	{#if data.skills.length}<SkillList skills={data.skills} />{#if data.pages > 1}<div
 				class="pagination"
@@ -27,6 +27,7 @@
 				Upload a SKILL.md file or a complete skill folder as a ZIP. You’ll be able to maintain it
 				here.
 			</p>
-			<a class="button primary" href={`${base}/upload`}>Upload skill</a>
-		</div>{/if}
+			<a class="button primary" href={resolve(`upload`)}>Upload skill</a>
+		</div>
+	{/if}
 </div>
