@@ -12,6 +12,30 @@ import tarfile
 import tempfile
 
 
+def release_commit(release):
+    """The commit a release was built from, or None when it cannot be determined.
+
+    Deployed releases are archive extracts rather than clones, so they carry a
+    REVISION file and have no .git directory. Never let unknown provenance stop
+    a backup: the metadata is a convenience, the data is the point.
+    """
+    revision = Path(release) / "REVISION"
+    try:
+        recorded = revision.read_text().strip()
+        if recorded:
+            return recorded
+    except OSError:
+        pass
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(release), "rev-parse", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (subprocess.CalledProcessError, OSError):
+        return None
+
+
 def create_backup(data_dir, destination, keep=14, release=None):
     data_dir = Path(data_dir).resolve()
     destination = Path(destination).resolve()
@@ -40,9 +64,9 @@ def create_backup(data_dir, destination, keep=14, release=None):
                 source.close()
             metadata = {"createdAt": timestamp, "revisions": len(revisions)}
             if release:
-                metadata["commit"] = subprocess.check_output(
-                    ["git", "-C", str(release), "rev-parse", "HEAD"], text=True
-                ).strip()
+                commit = release_commit(release)
+                if commit:
+                    metadata["commit"] = commit
             manifest = Path(temp) / "backup.json"
             manifest.write_text(json.dumps(metadata, indent=2) + "\n")
             with partial.open("xb") as output:
