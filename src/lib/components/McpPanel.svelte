@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import CodeBlock from './CodeBlock.svelte';
 	const hub = $derived(`${page.url.origin}${resolve('')}`.replace(/\/$/, ''));
 	const endpoint = $derived(`${hub}/mcp`);
@@ -9,6 +10,10 @@
 		JSON.stringify({ mcpServers: { 'aps-hub': { type: 'http', url: endpoint } } }, null, 2)
 	);
 	let manual = $state(false);
+	// The toggle only works once the handler is bound, so it stays disabled
+	// until then rather than ignoring clicks.
+	let ready = $state(false);
+	onMount(() => (ready = true));
 </script>
 
 <details class="connect">
@@ -25,7 +30,13 @@
 			approve it. Your assistant stores and renews its own access from then on — there is no key to
 			copy or keep.
 		</p>
-		<button type="button" class="toggle" onclick={() => (manual = !manual)}>
+		<button
+			type="button"
+			class="toggle"
+			disabled={!ready}
+			aria-expanded={manual}
+			onclick={() => (manual = !manual)}
+		>
 			{manual ? 'Hide' : 'Show'} configuration for other assistants
 		</button>
 		{#if manual}
@@ -81,5 +92,10 @@
 		color: var(--blue);
 		cursor: pointer;
 		text-decoration: underline;
+	}
+	.toggle:disabled {
+		color: var(--muted);
+		cursor: default;
+		text-decoration: none;
 	}
 </style>
